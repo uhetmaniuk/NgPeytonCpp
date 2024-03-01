@@ -11,5 +11,5 @@ INCLUDE_DIRECTORIES ("${PROJECT_SOURCE_DIR}/src"
                      "${PROJECT_SOURCE_DIR}/examples")
 
 ADD_EXECUTABLE(test examples/clap2d5pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h
-               src/nd2d.h)
+        examples/nd2d.h)
 

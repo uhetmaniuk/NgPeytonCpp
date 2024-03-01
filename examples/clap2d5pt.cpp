@@ -183,10 +183,8 @@ int main(int argc, char **argv) {
   std::vector<doublecomplex> u_val(nzvals);
   std::vector<int> u_perm(perm);
 
-  int u_Lnnz = 0;
-  NgPeytonCpp::SymmetricSparse<doublecomplex> uh(nnodes, &u_cptr[0],
-                                               &u_rowind[0], u_Lnnz,
-                                               order, &u_perm[0]);
+  NgPeytonCpp::SymmetricSparse<doublecomplex> uh(nnodes, u_cptr.data(),
+                                                 u_rowind.data(), order, u_perm.data());
   uh.ldlTFactorize(&u_cptr[0], &u_rowind[0], &u_val[0]);
 
 }

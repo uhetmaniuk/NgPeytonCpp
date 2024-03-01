@@ -18,11 +18,10 @@ public:
   /// \param n_
   /// \param colptr_
   /// \param rowind_
-  /// \param Lnnz_
   /// \param order_
-  /// \param perm_
-  SymmetricSparse(int n_, const int *colptr_, const int *rowind_, int &Lnnz_,
-                  int order_, const int *perm_);
+  /// \param perm_ User-provided permutation array
+  SymmetricSparse(int n_, const int *colptr_, const int *rowind_,
+                  int order_, const int *perm_ = nullptr);
 
   /// \brief Default destructor
   ~SymmetricSparse() = default;
@@ -41,7 +40,7 @@ public:
   ///
   /// \param x
   /// \param rhs
-  void solve(Scalar *x_, const Scalar *rhs_);
+  void solve(const Scalar *rhs, Scalar *x);
 
 protected:
 
