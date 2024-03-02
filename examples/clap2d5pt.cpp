@@ -208,7 +208,11 @@ int main(int argc, char **argv) {
     }
 
   uh.solve(Ax.data(), y.data());
+    double error = 0.0, norm = 0.0;
   for (int i = 0; i < nnodes; ++i) {
-      std::cout << x[i] << " " << y[i] << " " << y[i] - x[i] << std::endl;
+      norm += std::abs(x[i]);
+      error += std::abs(x[i] - y[i]);
   }
+  std::cout << " || x - y || " << error << std::endl;
+  std::cout << " || x - y || / || x || " << error / norm << "\n";
 }
