@@ -14,11 +14,11 @@ int main(int argc, char **argv) {
 
   int i, j, nnodes, nedges, ia, nnz;
   int nx = -1, ny = -1, count, node;
-  int token, order = 0;
+  int token, order = 1;
   int Lnnz;
   double t0 = 0.0, t1 = 0.0, errmax = 0.0;
   doublecomplex dval;
-  int pbc = 1, chkerr = 1;
+  int pbc = 0, chkerr = 1;
   int printa = 0;
   int dumpL = 0;
 
@@ -58,8 +58,8 @@ int main(int argc, char **argv) {
   if (ny < 0)
     ny = 10;
 
-  nx = 5;
-  ny = 7;
+  nx = 11;
+  ny = 9;
   printa = 1;
   chkerr = 1;
 
@@ -111,10 +111,13 @@ int main(int argc, char **argv) {
   for (j = 1; j <= ny; j++) {
     for (i = 1; i <= nx; i++) {
       /* diagonal */
+
+      /*
       if (printa) {
         printf("%d %d  %8.2e %8.2e\n", mesh(i, j), mesh(i, j), real(dval),
                imag(dval));
       }
+       */
 
       rowind[count] = mesh(i, j);
       nzvals[count] = dval;
@@ -122,8 +125,8 @@ int main(int argc, char **argv) {
 
       /* lower */
       if (i < nx) {
-        if (printa)
-          printf("%d %d -1.0 0.0\n", mesh(i + 1, j), mesh(i, j));
+        //if (printa)
+        //  printf("%d %d -1.0 0.0\n", mesh(i + 1, j), mesh(i, j));
 
         rowind[count] = mesh(i + 1, j);
         nzvals[count] = std::complex<double>(-1.0, 0.0);
@@ -133,8 +136,8 @@ int main(int argc, char **argv) {
       if (pbc) {
         /* bottom of the mesh */
         if (i == 1) {
-          if (printa)
-            printf("%d %d -1.0 0.0\n", mesh(nx, j), mesh(i, j));
+          //if (printa)
+          //  printf("%d %d -1.0 0.0\n", mesh(nx, j), mesh(i, j));
 
           rowind[count] = mesh(nx, j);
           nzvals[count] = std::complex<double>(-1.0, 0.0);
@@ -144,8 +147,8 @@ int main(int argc, char **argv) {
 
       /* right */
       if (j < ny) {
-        if (printa)
-          printf("%d %d -1.0 0.0\n", mesh(i, j + 1), mesh(i, j));
+        //if (printa)
+        //  printf("%d %d -1.0 0.0\n", mesh(i, j + 1), mesh(i, j));
 
         rowind[count] = mesh(i, j + 1);
         nzvals[count] = std::complex<double>(-1.0, 0.0);
@@ -155,8 +158,8 @@ int main(int argc, char **argv) {
       if (pbc) {
         /* right end of the mesh */
         if (j == 1) {
-          if (printa)
-            printf("%d %d -1.0 0.0\n", mesh(i, ny), mesh(i, j));
+          //if (printa)
+          //  printf("%d %d -1.0 0.0\n", mesh(i, ny), mesh(i, j));
 
           rowind[count] = mesh(i, ny);
           nzvals[count] = std::complex<double>(-1.0, 0.0);
@@ -174,6 +177,7 @@ int main(int argc, char **argv) {
 
   token = 0;
 
+  order = 2;
   if (order == 0) {
     perm.resize(nnodes);
     nd2d(nx, ny, mesh, perm);
@@ -187,4 +191,24 @@ int main(int argc, char **argv) {
                                                  u_rowind.data(), order, u_perm.data());
   uh.ldlTFactorize(&u_cptr[0], &u_rowind[0], &u_val[0]);
 
+  using Scalar = doublecomplex;
+  std::vector<Scalar> x(nnodes), Ax(nnodes), y(nnodes);
+  for (int i = 0; i < nnodes; ++i) {
+      x[i] = Scalar(std::rand()) / Scalar(RAND_MAX);
+      Ax[i] = 0;
+  }
+
+    for (int i = 0; i < nnodes; ++i) {
+        for (int k = u_cptr[i]; k < u_cptr[i+1]; ++k) {
+            Ax[i] += u_val[k - 1] * x[u_rowind[k - 1] - 1];
+            if (u_rowind[k - 1] - 1 != i) {
+                Ax[u_rowind[k - 1] - 1] += u_val[k - 1] * x[i];
+            }
+        }
+    }
+
+  uh.solve(Ax.data(), y.data());
+  for (int i = 0; i < nnodes; ++i) {
+      std::cout << x[i] << " " << y[i] << " " << y[i] - x[i] << std::endl;
+  }
 }

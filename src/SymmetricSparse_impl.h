@@ -2190,34 +2190,37 @@ void mmdint(Index neqns, const Index *xadj, Index *dhead, Index *dforw,
             Index *dbakw, Index *qsize, Index *llist, Index *marker) {
     /* Local variables */
     Index ndeg, node, fnode;
-    
-    /* Parameter adjustments */
-    --marker;
-    --llist;
-    --qsize;
-    --dhead;
-    
-    /* Function Body */
-    for (node = 1; node <= neqns; ++node) {
-        dhead[node] = 0;
-        qsize[node] = 1;
-        marker[node] = 0;
-        llist[node] = 0;
-        /* L100: */
-    }
-    /*        ------------------------------------------ */
-    /*        INITIALIZE THE DEGREE DOUBLY LINKED LISTS. */
-    /*        ------------------------------------------ */
-    for (node = 0; node < neqns; ++node) {
-        ndeg = xadj[node + 1] - xadj[node] + 1;
-        fnode = dhead[ndeg];
-        dforw[node] = fnode;
-        dhead[ndeg] = node + 1;
-        if (fnode > 0) {
-            dbakw[fnode] = node + 1;
-        }
-        dbakw[node] = -ndeg;
-    }
+
+                /* Parameter adjustments */
+                --marker;
+                --llist;
+                --qsize;
+                --dbakw;
+                --dforw;
+                --dhead;
+                --xadj;
+
+                /* Function Body */
+                for (node = 1; node <= neqns; ++node) {
+                    dhead[node] = 0;
+                    qsize[node] = 1;
+                    marker[node] = 0;
+                    llist[node] = 0;
+                    /* L100: */
+                }
+                /*        ------------------------------------------ */
+                /*        INITIALIZE THE DEGREE DOUBLY LINKED LISTS. */
+                /*        ------------------------------------------ */
+                for (node = 1; node <= neqns; ++node) {
+                    ndeg = xadj[node + 1] - xadj[node] + 1;
+                    fnode = dhead[ndeg];
+                    dforw[node] = fnode;
+                    dhead[ndeg] = node;
+                    if (fnode > 0) {
+                        dbakw[fnode] = node;
+                    }
+                    dbakw[node] = -ndeg;
+                }
     
 } /* mmdint */
 
