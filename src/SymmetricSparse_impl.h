@@ -4,7 +4,6 @@
 #include <cmath>
 #include <iostream>
 #include <memory>
-#include <sys/time.h>
 #include <vector>
 
 #include "SymmetricSparse.h"
@@ -20,14 +19,7 @@ extern void METIS_NodeND(int *n, int *xadj, int *adj, int *numflag,
 
 namespace NgPeytonCpp {
 
-namespace details {
-
-double gtimer() {
-    timeval tp;
-    struct timezone tz;
-    gettimeofday(&tp, &tz);
-    return 1000.0 * tp.tv_sec + tp.tv_usec / 1000.0;
-} /* gtimer */
+    namespace details {
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -65,26 +57,26 @@ double gtimer() {
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void assmb(Index m, Index q, Scalar *y, Index *relind, Index *xlnz,
-           Scalar *lnz, Index lda) {
-    /* Local variables */
-    Index ir, il1, iy1, icol, ycol, lbot1, yoff1;
-    
-    yoff1 = 0;
-    for (icol = 1; icol <= q; ++icol) {
-        ycol = lda - relind[icol - 1];
-        lbot1 = xlnz[ycol] - 1;
-        for (ir = icol; ir <= m; ++ir) {
-            il1 = lbot1 - relind[ir - 1];
-            iy1 = yoff1 + ir;
-            lnz[il1 - 1] += y[iy1 - 1];
-            y[iy1 - 1] = static_cast<Scalar>(0);
-        }
-        yoff1 = iy1 - icol;
-    }
-    
-} /* assmb */
+        template<typename Scalar, typename Index>
+        void assmb(Index m, Index q, Scalar *y, Index *relind, Index *xlnz,
+                   Scalar *lnz, Index lda) {
+            /* Local variables */
+            Index ir, il1, iy1, icol, ycol, lbot1, yoff1;
+
+            yoff1 = 0;
+            for (icol = 1; icol <= q; ++icol) {
+                ycol = lda - relind[icol - 1];
+                lbot1 = xlnz[ycol] - 1;
+                for (ir = icol; ir <= m; ++ir) {
+                    il1 = lbot1 - relind[ir - 1];
+                    iy1 = yoff1 + ir;
+                    lnz[il1 - 1] += y[iy1 - 1];
+                    y[iy1 - 1] = static_cast<Scalar>(0);
+                }
+                yoff1 = iy1 - icol;
+            }
+
+        } /* assmb */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -124,22 +116,21 @@ void assmb(Index m, Index q, Scalar *y, Index *relind, Index *xlnz,
 
 /* *********************************************************************** */
 
-template<typename Index>
-void invinv(Index neqns, Index *invp, const Index *invp2, Index *perm) {
-    /* Local variables */
-    Index i, node, interm;
-    
-    for (i = 0; i < neqns; ++i) {
-        interm = invp[i];
-        invp[i] = invp2[interm - 1];
-    }
-    
-    for (i = 0; i < neqns; ++i) {
-        node = invp[i] - 1;
-        perm[node] = i + 1;
-    }
-    
-} /* invinv */
+        template<typename Index>
+        void invinv(Index neqns, Index *invp, const Index *invp2, Index *perm) {
+            /* Local variables */
+            Index i, node, interm;
+            for (i = 0; i < neqns; ++i) {
+                interm = invp[i];
+                invp[i] = invp2[interm - 1];
+            }
+
+            for (i = 0; i < neqns; ++i) {
+                node = invp[i] - 1;
+                perm[node] = i + 1;
+            }
+
+        } /* invinv */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -184,23 +175,23 @@ void invinv(Index neqns, Index *invp, const Index *invp2, Index *perm) {
 
 /* *********************************************************************** */
 
-template<typename Index>
-void fsup2(Index neqns, Index nsuper, const Index *snode,
-           Index *xsuper) {
-    Index kcol, ksup, lstsup;
-    /*       ------------------------------------------------- */
-    /*       COMPUTE THE SUPERNODE PARTITION VECTOR XSUPER(*). */
-    /*       ------------------------------------------------- */
-    lstsup = nsuper + 1;
-    for (kcol = neqns; kcol >= 1; --kcol) {
-        ksup = snode[kcol - 1];
-        if (ksup != lstsup) {
-            xsuper[lstsup - 1] = kcol + 1;
-        }
-        lstsup = ksup;
-    }
-    xsuper[0] = 1;
-} /* fsup2 */
+        template<typename Index>
+        void fsup2(Index neqns, Index nsuper, const Index *snode,
+                   Index *xsuper) {
+            Index kcol, ksup, lstsup;
+            /*       ------------------------------------------------- */
+            /*       COMPUTE THE SUPERNODE PARTITION VECTOR XSUPER(*). */
+            /*       ------------------------------------------------- */
+            lstsup = nsuper + 1;
+            for (kcol = neqns; kcol >= 1; --kcol) {
+                ksup = snode[kcol - 1];
+                if (ksup != lstsup) {
+                    xsuper[lstsup - 1] = kcol + 1;
+                }
+                lstsup = ksup;
+            }
+            xsuper[0] = 1;
+        } /* fsup2 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -249,29 +240,29 @@ void fsup2(Index neqns, Index nsuper, const Index *snode,
 
 /* *********************************************************************** */
 
-template<typename Index>
-void fsup1(Index neqns, const Index *etpar, const Index *colcnt,
-           Index &nofsub, Index &nsuper, Index *snode) {
-    /*       -------------------------------------------- */
-    /*       COMPUTE THE FUNDAMENTAL SUPERNODE PARTITION. */
-    /*       -------------------------------------------- */
-    nsuper = 1;
-    snode[0] = 1;
-    nofsub = colcnt[0];
-    for (Index kcol = 1; kcol < neqns; ++kcol) {
-        if (etpar[kcol - 1] == kcol + 1) {
-            if (colcnt[kcol - 1] == colcnt[kcol] + 1) {
+        template<typename Index>
+        void fsup1(Index neqns, const Index *etpar, const Index *colcnt,
+                   Index &nofsub, Index &nsuper, Index *snode) {
+            /*       -------------------------------------------- */
+            /*       COMPUTE THE FUNDAMENTAL SUPERNODE PARTITION. */
+            /*       -------------------------------------------- */
+            nsuper = 1;
+            snode[0] = 1;
+            nofsub = colcnt[0];
+            for (Index kcol = 1; kcol < neqns; ++kcol) {
+                if (etpar[kcol - 1] == kcol + 1) {
+                    if (colcnt[kcol - 1] == colcnt[kcol] + 1) {
+                        snode[kcol] = nsuper;
+                        continue;
+                    }
+                }
+                ++nsuper;
                 snode[kcol] = nsuper;
-                continue;
+                nofsub += colcnt[kcol];
             }
-        }
-        ++nsuper;
-        snode[kcol] = nsuper;
-        nofsub += colcnt[kcol];
-    }
-} /* fsup1 */
+        } /* fsup1 */
 
-namespace f2c {
+        namespace f2c {
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -313,91 +304,91 @@ namespace f2c {
 
 /* *********************************************************************** */
 
-template<typename Index>
-void epost2(Index root, const Index *fson, Index *brothr,
-            Index *invpos,
-            Index *parent, Index *colcnt, Index *stack) {
-    
-    /* Local variables */
-    Index num, node, itop, ndpar, nunode;
-    
-    /* Parameter adjustments */
-    --stack;
-    --colcnt;
-    --parent;
-    --invpos;
-    --brothr;
-    --fson;
-    
-    /* Function Body */
-    num = 0;
-    itop = 0;
-    node = root;
-    /*       ------------------------------------------------------------- */
-    /*       TRAVERSE ALONG THE FIRST SONS POINTER AND PUSH THE TREE NODES */
-    /*       ALONG THE TRAVERSAL INTO THE STACK. */
-    /*       ------------------------------------------------------------- */
-L100:
-    ++itop;
-    stack[itop] = node;
-    node = fson[node];
-    if (node > 0) {
-        goto L100;
-    }
-    /*           ---------------------------------------------------------- */
-    /*           IF POSSIBLE, POP A TREE NODE FROM THE STACK AND NUMBER IT. */
-    /*           ---------------------------------------------------------- */
-L200:
-    if (itop <= 0) {
-        goto L300;
-    }
-    node = stack[itop];
-    --itop;
-    ++num;
-    invpos[node] = num;
-    /*               ---------------------------------------------------- */
-    /*               THEN, TRAVERSE TO ITS YOUNGER BROTHER IF IT HAS ONE. */
-    /*               ---------------------------------------------------- */
-    node = brothr[node];
-    if (node <= 0) {
-        goto L200;
-    }
-    goto L100;
-    
-L300:
-    /*       ------------------------------------------------------------ */
-    /*       DETERMINE THE NEW PARENT VECTOR OF THE POSTORDERING.  BROTHR */
-    /*       IS USED TEMPORARILY FOR THE NEW PARENT VECTOR. */
-    /*       ------------------------------------------------------------ */
-    for (node = 1; node <= num; ++node) {
-        nunode = invpos[node];
-        ndpar = parent[node];
-        if (ndpar > 0) {
-            ndpar = invpos[ndpar];
-        }
-        brothr[nunode] = ndpar;
-        /* L400: */
-    }
-    
-    for (nunode = 1; nunode <= num; ++nunode) {
-        parent[nunode] = brothr[nunode];
-        /* L500: */
-    }
-    
-    /*       ---------------------------------------------- */
-    /*       PERMUTE COLCNT(*) TO REFLECT THE NEW ORDERING. */
-    /*       ---------------------------------------------- */
-    for (node = 1; node <= num; ++node) {
-        nunode = invpos[node];
-        stack[nunode] = colcnt[node];
-        /* L600: */
-    }
-    
-    for (node = 1; node <= num; ++node) {
-        colcnt[node] = stack[node];
-        /* L700: */
-    }
-} /* epost2 */
+            template<typename Index>
+            void epost2(Index root, const Index *fson, Index *brothr,
+                        Index *invpos,
+                        Index *parent, Index *colcnt, Index *stack) {
+
+                /* Local variables */
+                Index num, node, itop, ndpar, nunode;
+
+                /* Parameter adjustments */
+                --stack;
+                --colcnt;
+                --parent;
+                --invpos;
+                --brothr;
+                --fson;
+
+                /* Function Body */
+                num = 0;
+                itop = 0;
+                node = root;
+                /*       ------------------------------------------------------------- */
+                /*       TRAVERSE ALONG THE FIRST SONS POINTER AND PUSH THE TREE NODES */
+                /*       ALONG THE TRAVERSAL INTO THE STACK. */
+                /*       ------------------------------------------------------------- */
+                L100:
+                ++itop;
+                stack[itop] = node;
+                node = fson[node];
+                if (node > 0) {
+                    goto L100;
+                }
+                /*           ---------------------------------------------------------- */
+                /*           IF POSSIBLE, POP A TREE NODE FROM THE STACK AND NUMBER IT. */
+                /*           ---------------------------------------------------------- */
+                L200:
+                if (itop <= 0) {
+                    goto L300;
+                }
+                node = stack[itop];
+                --itop;
+                ++num;
+                invpos[node] = num;
+                /*               ---------------------------------------------------- */
+                /*               THEN, TRAVERSE TO ITS YOUNGER BROTHER IF IT HAS ONE. */
+                /*               ---------------------------------------------------- */
+                node = brothr[node];
+                if (node <= 0) {
+                    goto L200;
+                }
+                goto L100;
+
+                L300:
+                /*       ------------------------------------------------------------ */
+                /*       DETERMINE THE NEW PARENT VECTOR OF THE POSTORDERING.  BROTHR */
+                /*       IS USED TEMPORARILY FOR THE NEW PARENT VECTOR. */
+                /*       ------------------------------------------------------------ */
+                for (node = 1; node <= num; ++node) {
+                    nunode = invpos[node];
+                    ndpar = parent[node];
+                    if (ndpar > 0) {
+                        ndpar = invpos[ndpar];
+                    }
+                    brothr[nunode] = ndpar;
+                    /* L400: */
+                }
+
+                for (nunode = 1; nunode <= num; ++nunode) {
+                    parent[nunode] = brothr[nunode];
+                    /* L500: */
+                }
+
+                /*       ---------------------------------------------- */
+                /*       PERMUTE COLCNT(*) TO REFLECT THE NEW ORDERING. */
+                /*       ---------------------------------------------- */
+                for (node = 1; node <= num; ++node) {
+                    nunode = invpos[node];
+                    stack[nunode] = colcnt[node];
+                    /* L600: */
+                }
+
+                for (node = 1; node <= num; ++node) {
+                    colcnt[node] = stack[node];
+                    /* L700: */
+                }
+            } /* epost2 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -437,68 +428,68 @@ L300:
 
 /* *********************************************************************** */
 
-template<typename Index>
-void btree2(Index neqns, const Index *parent, const Index *colcnt, Index *fson,
-            Index *brothr, Index *lson) {
-    /* Local variables */
-    Index node, ndpar, lroot, ndlson;
-    
-    if (neqns <= 0) {
-        return;
-    }
-    
-    for (node = 0; node < neqns; ++node) {
-        fson[node] = 0;
-        brothr[node] = 0;
-        lson[node] = 0;
-    }
-    
-    lroot = neqns;
-    /*       ------------------------------------------------------------ */
-    /*       FOR EACH NODE := NEQNS-1 STEP -1 DOWNTO 1, DO THE FOLLOWING. */
-    /*       ------------------------------------------------------------ */
-    if (neqns <= 1) {
-        return;
-    }
-    
-    /* Parameter adjustments */
-    --lson;
-    --brothr;
-    --fson;
-    --colcnt;
-    --parent;
-    
-    for (node = neqns - 1; node >= 1; --node) {
-        ndpar = parent[node];
-        if (ndpar <= 0 || ndpar == node) {
-            /*               ------------------------------------------------- */
-            /*               NODE HAS NO PARENT.  GIVEN STRUCTURE IS A FOREST. */
-            /*               SET NODE TO BE ONE OF THE ROOTS OF THE TREES. */
-            /*               ------------------------------------------------- */
-            brothr[lroot] = node;
-            lroot = node;
-        } else {
-            /*               ------------------------------------------- */
-            /*               OTHERWISE, BECOMES FIRST SON OF ITS PARENT. */
-            /*               ------------------------------------------- */
-            ndlson = lson[ndpar];
-            if (ndlson != 0) {
-                if (colcnt[node] >= colcnt[ndlson]) {
-                    brothr[node] = fson[ndpar];
-                    fson[ndpar] = node;
-                } else {
-                    brothr[ndlson] = node;
-                    lson[ndpar] = node;
+            template<typename Index>
+            void btree2(Index neqns, const Index *parent, const Index *colcnt, Index *fson,
+                        Index *brothr, Index *lson) {
+                /* Local variables */
+                Index node, ndpar, lroot, ndlson;
+
+                if (neqns <= 0) {
+                    return;
                 }
-            } else {
-                fson[ndpar] = node;
-                lson[ndpar] = node;
-            }
-        }
-        /* L300: */
-    }
-    brothr[lroot] = 0;
-} /* btree2 */
+
+                for (node = 0; node < neqns; ++node) {
+                    fson[node] = 0;
+                    brothr[node] = 0;
+                    lson[node] = 0;
+                }
+
+                lroot = neqns;
+                /*       ------------------------------------------------------------ */
+                /*       FOR EACH NODE := NEQNS-1 STEP -1 DOWNTO 1, DO THE FOLLOWING. */
+                /*       ------------------------------------------------------------ */
+                if (neqns <= 1) {
+                    return;
+                }
+
+                /* Parameter adjustments */
+                --lson;
+                --brothr;
+                --fson;
+                --colcnt;
+                --parent;
+
+                for (node = neqns - 1; node >= 1; --node) {
+                    ndpar = parent[node];
+                    if (ndpar <= 0 || ndpar == node) {
+                        /*               ------------------------------------------------- */
+                        /*               NODE HAS NO PARENT.  GIVEN STRUCTURE IS A FOREST. */
+                        /*               SET NODE TO BE ONE OF THE ROOTS OF THE TREES. */
+                        /*               ------------------------------------------------- */
+                        brothr[lroot] = node;
+                        lroot = node;
+                    } else {
+                        /*               ------------------------------------------- */
+                        /*               OTHERWISE, BECOMES FIRST SON OF ITS PARENT. */
+                        /*               ------------------------------------------- */
+                        ndlson = lson[ndpar];
+                        if (ndlson != 0) {
+                            if (colcnt[node] >= colcnt[ndlson]) {
+                                brothr[node] = fson[ndpar];
+                                fson[ndpar] = node;
+                            } else {
+                                brothr[ndlson] = node;
+                                lson[ndpar] = node;
+                            }
+                        } else {
+                            fson[ndpar] = node;
+                            lson[ndpar] = node;
+                        }
+                    }
+                    /* L300: */
+                }
+                brothr[lroot] = 0;
+            } /* btree2 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -548,30 +539,30 @@ void btree2(Index neqns, const Index *parent, const Index *colcnt, Index *fson,
 
 /* *********************************************************************** */
 
-template<typename Index>
-void chordr(Index neqns, const Index *xadj, const Index *adjncy,
-            Index *perm, Index *invp,
-            Index *colcnt, Index *parent, Index *fson, Index *brothr,
-            Index *invpos) {
-    
-    /*       ---------------------------------------------------------- */
-    /*       COMPUTE A BINARY REPRESENTATION OF THE ELIMINATION TREE, */
-    /*       SO THAT EACH "LAST CHILD" MAXIMIZES AMONG ITS SIBLINGS THE */
-    /*       NUMBER OF NONZEROS IN THE CORRESPONDING COLUMNS OF L. */
-    /*       ---------------------------------------------------------- */
-    btree2(neqns, parent, colcnt, fson, brothr, invpos);
-    
-    /*       ---------------------------------------------------- */
-    /*       POSTORDER THE ELIMINATION TREE (USING THE NEW BINARY */
-    /*       REPRESENTATION. */
-    /*       ---------------------------------------------------- */
-    epost2(neqns, fson, brothr, invpos, parent, colcnt, perm);
-    
-    /*       -------------------------------------------------------- */
-    /*       COMPOSE THE ORIGINAL ORDERING WITH THE NEW POSTORDERING. */
-    /*       -------------------------------------------------------- */
-    invinv(neqns, invp, invpos, perm);
-} /* chordr */
+            template<typename Index>
+            void chordr(Index neqns, const Index *xadj, const Index *adjncy,
+                        Index *perm, Index *invp,
+                        Index *colcnt, Index *parent, Index *fson, Index *brothr,
+                        Index *invpos) {
+
+                /*       ---------------------------------------------------------- */
+                /*       COMPUTE A BINARY REPRESENTATION OF THE ELIMINATION TREE, */
+                /*       SO THAT EACH "LAST CHILD" MAXIMIZES AMONG ITS SIBLINGS THE */
+                /*       NUMBER OF NONZEROS IN THE CORRESPONDING COLUMNS OF L. */
+                /*       ---------------------------------------------------------- */
+                btree2(neqns, parent, colcnt, fson, brothr, invpos);
+
+                /*       ---------------------------------------------------- */
+                /*       POSTORDER THE ELIMINATION TREE (USING THE NEW BINARY */
+                /*       REPRESENTATION. */
+                /*       ---------------------------------------------------- */
+                epost2(neqns, fson, brothr, invpos, parent, colcnt, perm);
+
+                /*       -------------------------------------------------------- */
+                /*       COMPOSE THE ORIGINAL ORDERING WITH THE NEW POSTORDERING. */
+                /*       -------------------------------------------------------- */
+                invinv(neqns, invp, invpos, perm);
+            } /* chordr */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -614,70 +605,70 @@ void chordr(Index neqns, const Index *xadj, const Index *adjncy,
 
 /* *********************************************************************** */
 
-template<typename Index>
-void etpost(Index root, const Index *fson, Index *brothr,
-            Index *invpos,
-            Index *parent, Index *stack) {
-    
-    /* Local variables */
-    Index num, node, itop, ndpar, nunode;
-    
-    /* Parameter adjustments */
-    --invpos;
-    
-    /* Function Body */
-    num = 0;
-    itop = 0;
-    node = root;
-    /*       ------------------------------------------------------------- */
-    /*       TRAVERSE ALONG THE FIRST SONS POINTER AND PUSH THE TREE NODES */
-    /*       ALONG THE TRAVERSAL INTO THE STACK. */
-    /*       ------------------------------------------------------------- */
-L100:
-    ++itop;
-    stack[itop - 1] = node;
-    node = fson[node - 1];
-    if (node > 0) {
-        goto L100;
-    }
-    /*           ---------------------------------------------------------- */
-    /*           IF POSSIBLE, POP A TREE NODE FROM THE STACK AND NUMBER IT. */
-    /*           ---------------------------------------------------------- */
-L200:
-    if (itop <= 0) {
-        goto L300;
-    }
-    node = stack[itop - 1];
-    --itop;
-    ++num;
-    invpos[node] = num;
-    /*               ---------------------------------------------------- */
-    /*               THEN, TRAVERSE TO ITS YOUNGER BROTHER IF IT HAS ONE. */
-    /*               ---------------------------------------------------- */
-    node = brothr[node - 1];
-    if (node <= 0) {
-        goto L200;
-    }
-    goto L100;
-    
-L300:
-    /*       ------------------------------------------------------------ */
-    /*       DETERMINE THE NEW PARENT VECTOR OF THE POSTORDERING.  BROTHR */
-    /*       IS USED TEMPORARILY FOR THE NEW PARENT VECTOR. */
-    /*       ------------------------------------------------------------ */
-    for (node = 0; node < num; ++node) {
-        nunode = invpos[node + 1];
-        ndpar = parent[node];
-        if (ndpar > 0) {
-            ndpar = invpos[ndpar];
-        }
-        brothr[nunode - 1] = ndpar;
-    }
-    
-    for (nunode = 0; nunode < num; ++nunode) {
-        parent[nunode] = brothr[nunode];
-    }
-} /* etpost */
+            template<typename Index>
+            void etpost(Index root, const Index *fson, Index *brothr,
+                        Index *invpos,
+                        Index *parent, Index *stack) {
+
+                /* Local variables */
+                Index num, node, itop, ndpar, nunode;
+
+                /* Parameter adjustments */
+                --invpos;
+
+                /* Function Body */
+                num = 0;
+                itop = 0;
+                node = root;
+                /*       ------------------------------------------------------------- */
+                /*       TRAVERSE ALONG THE FIRST SONS POINTER AND PUSH THE TREE NODES */
+                /*       ALONG THE TRAVERSAL INTO THE STACK. */
+                /*       ------------------------------------------------------------- */
+                L100:
+                ++itop;
+                stack[itop - 1] = node;
+                node = fson[node - 1];
+                if (node > 0) {
+                    goto L100;
+                }
+                /*           ---------------------------------------------------------- */
+                /*           IF POSSIBLE, POP A TREE NODE FROM THE STACK AND NUMBER IT. */
+                /*           ---------------------------------------------------------- */
+                L200:
+                if (itop <= 0) {
+                    goto L300;
+                }
+                node = stack[itop - 1];
+                --itop;
+                ++num;
+                invpos[node] = num;
+                /*               ---------------------------------------------------- */
+                /*               THEN, TRAVERSE TO ITS YOUNGER BROTHER IF IT HAS ONE. */
+                /*               ---------------------------------------------------- */
+                node = brothr[node - 1];
+                if (node <= 0) {
+                    goto L200;
+                }
+                goto L100;
+
+                L300:
+                /*       ------------------------------------------------------------ */
+                /*       DETERMINE THE NEW PARENT VECTOR OF THE POSTORDERING.  BROTHR */
+                /*       IS USED TEMPORARILY FOR THE NEW PARENT VECTOR. */
+                /*       ------------------------------------------------------------ */
+                for (node = 0; node < num; ++node) {
+                    nunode = invpos[node + 1];
+                    ndpar = parent[node];
+                    if (ndpar > 0) {
+                        ndpar = invpos[ndpar];
+                    }
+                    brothr[nunode - 1] = ndpar;
+                }
+
+                for (nunode = 0; nunode < num; ++nunode) {
+                    parent[nunode] = brothr[nunode];
+                }
+            } /* etpost */
 
 
 /* *********************************************************************** */
@@ -715,55 +706,55 @@ L300:
 
 /* *********************************************************************** */
 
-template<typename Index>
-void betree(Index neqns, const Index *parent, Index *fson, Index *brothr) {
-    
-    /* Local variables */
-    Index node, ndpar, lroot;
-    
-    /* Function Body */
-    if (neqns <= 0) {
-        return;
-    }
-    
-    for (node = 0; node < neqns; ++node) {
-        fson[node] = 0;
-        brothr[node] = 0;
-    }
-    
-    lroot = neqns;
-    /*       ------------------------------------------------------------ */
-    /*       FOR EACH NODE := NEQNS-1 STEP -1 DOWNTO 1, DO THE FOLLOWING. */
-    /*       ------------------------------------------------------------ */
-    if (neqns <= 1) {
-        return;
-    }
-    
-    /* Parameter adjustments */
-    --brothr;
-    --fson;
-    --parent;
-    
-    for (node = neqns - 1; node >= 1; --node) {
-        ndpar = parent[node];
-        if (ndpar <= 0 || ndpar == node) {
-            /*               ------------------------------------------------- */
-            /*               NODE HAS NO PARENT.  GIVEN STRUCTURE IS A FOREST. */
-            /*               SET NODE TO BE ONE OF THE ROOTS OF THE TREES. */
-            /*               ------------------------------------------------- */
-            brothr[lroot] = node;
-            lroot = node;
-        } else {
-            /*               ------------------------------------------- */
-            /*               OTHERWISE, BECOMES FIRST SON OF ITS PARENT. */
-            /*               ------------------------------------------- */
-            brothr[node] = fson[ndpar];
-            fson[ndpar] = node;
-        }
-        /* L300: */
-    }
-    brothr[lroot] = 0;
-} /* betree */
+            template<typename Index>
+            void betree(Index neqns, const Index *parent, Index *fson, Index *brothr) {
+
+                /* Local variables */
+                Index node, ndpar, lroot;
+
+                /* Function Body */
+                if (neqns <= 0) {
+                    return;
+                }
+
+                for (node = 0; node < neqns; ++node) {
+                    fson[node] = 0;
+                    brothr[node] = 0;
+                }
+
+                lroot = neqns;
+                /*       ------------------------------------------------------------ */
+                /*       FOR EACH NODE := NEQNS-1 STEP -1 DOWNTO 1, DO THE FOLLOWING. */
+                /*       ------------------------------------------------------------ */
+                if (neqns <= 1) {
+                    return;
+                }
+
+                /* Parameter adjustments */
+                --brothr;
+                --fson;
+                --parent;
+
+                for (node = neqns - 1; node >= 1; --node) {
+                    ndpar = parent[node];
+                    if (ndpar <= 0 || ndpar == node) {
+                        /*               ------------------------------------------------- */
+                        /*               NODE HAS NO PARENT.  GIVEN STRUCTURE IS A FOREST. */
+                        /*               SET NODE TO BE ONE OF THE ROOTS OF THE TREES. */
+                        /*               ------------------------------------------------- */
+                        brothr[lroot] = node;
+                        lroot = node;
+                    } else {
+                        /*               ------------------------------------------- */
+                        /*               OTHERWISE, BECOMES FIRST SON OF ITS PARENT. */
+                        /*               ------------------------------------------- */
+                        brothr[node] = fson[ndpar];
+                        fson[ndpar] = node;
+                    }
+                    /* L300: */
+                }
+                brothr[lroot] = 0;
+            } /* betree */
 
 /*********************************************************************/
 /*********************************************************************/
@@ -807,84 +798,84 @@ void betree(Index neqns, const Index *parent, Index *fson, Index *brothr) {
 /*     === work array to accumulate the non-zero */
 /*         counts for each row === */
 
-template<typename Scalar, typename Index>
-void flo2ho(Index n,
-            const Index *colptr, const Index *rowind, const Scalar *nzvals,
-            Index *newptr, Index *newind, Scalar *newvals, Index *ip) {
-    
-    /* Local variables */
-    Index i, j, iend, inew, irow, ibegin;
-    
-    for (i = 0; i < n; ++i)
-        ip[i] = 0;
-    
-    /* Parameter adjustments */
-    --ip;
-    
-    --newptr;
-    --newind;
-    --newvals;
-    
-    /*     === nonzero count for each row of the */
-    /*         lower triangular part */
-    /*         (including the diagonal) === */
-    
-    for (j = 0; j < n; ++j) {
-        for (i = colptr[j]; i < colptr[j + 1]; ++i) {
-            irow = rowind[i - 1];
-            ++ip[irow];
-        }
-    }
-    
-    /*     === nonzero count for each column */
-    /*         (excluding the diagonal)      === */
-    
-    for (j = 0; j < n; ++j) {
-        ibegin = colptr[j];
-        iend = colptr[j + 1] - 1;
-        if (iend > ibegin) {
-            ip[j + 1] += iend - ibegin;
-        }
-    }
-    
-    /*     === compute pointers to the beginning of each column === */
-    
-    newptr[1] = 1;
-    for (i = 1; i <= n; ++i) {
-        newptr[i + 1] = newptr[i] + ip[i];
-    }
-    
-    for (i = 1; i <= n; ++i)
-        ip[i] = newptr[i];
-    
-    /*     === copy the upper triangular part === */
-    /*            (excluding the diagonal) */
-    
-    for (j = 0; j < n; ++j) {
-        ibegin = colptr[j];
-        iend = colptr[j + 1] - 1;
-        if (ibegin < iend) {
-            for (i = ibegin + 1; i <= iend; ++i) {
-                irow = rowind[i - 1];
-                newind[ip[irow]] = j + 1;
-                newvals[ip[irow]] = nzvals[i - 1];
-                ++ip[irow];
-            }
-        }
-    }
-    
-    /*     === copy the lower triangular part === */
-    /*            (including the diagonal) */
-    for (j = 0; j < n; ++j) {
-        inew = ip[j + 1];
-        for (i = colptr[j]; i < colptr[j + 1]; ++i) {
-            newind[inew] = rowind[i - 1];
-            newvals[inew] = nzvals[i - 1];
-            ++inew;
-        }
-    }
-    
-} /* flo2ho */
+            template<typename Scalar, typename Index>
+            void flo2ho(Index n,
+                        const Index *colptr, const Index *rowind, const Scalar *nzvals,
+                        Index *newptr, Index *newind, Scalar *newvals, Index *ip) {
+
+                /* Local variables */
+                Index i, j, iend, inew, irow, ibegin;
+
+                for (i = 0; i < n; ++i)
+                    ip[i] = 0;
+
+                /* Parameter adjustments */
+                --ip;
+
+                --newptr;
+                --newind;
+                --newvals;
+
+                /*     === nonzero count for each row of the */
+                /*         lower triangular part */
+                /*         (including the diagonal) === */
+
+                for (j = 0; j < n; ++j) {
+                    for (i = colptr[j]; i < colptr[j + 1]; ++i) {
+                        irow = rowind[i - 1];
+                        ++ip[irow];
+                    }
+                }
+
+                /*     === nonzero count for each column */
+                /*         (excluding the diagonal)      === */
+
+                for (j = 0; j < n; ++j) {
+                    ibegin = colptr[j];
+                    iend = colptr[j + 1] - 1;
+                    if (iend > ibegin) {
+                        ip[j + 1] += iend - ibegin;
+                    }
+                }
+
+                /*     === compute pointers to the beginning of each column === */
+
+                newptr[1] = 1;
+                for (i = 1; i <= n; ++i) {
+                    newptr[i + 1] = newptr[i] + ip[i];
+                }
+
+                for (i = 1; i <= n; ++i)
+                    ip[i] = newptr[i];
+
+                /*     === copy the upper triangular part === */
+                /*            (excluding the diagonal) */
+
+                for (j = 0; j < n; ++j) {
+                    ibegin = colptr[j];
+                    iend = colptr[j + 1] - 1;
+                    if (ibegin < iend) {
+                        for (i = ibegin + 1; i <= iend; ++i) {
+                            irow = rowind[i - 1];
+                            newind[ip[irow]] = j + 1;
+                            newvals[ip[irow]] = nzvals[i - 1];
+                            ++ip[irow];
+                        }
+                    }
+                }
+
+                /*     === copy the lower triangular part === */
+                /*            (including the diagonal) */
+                for (j = 0; j < n; ++j) {
+                    inew = ip[j + 1];
+                    for (i = colptr[j]; i < colptr[j + 1]; ++i) {
+                        newind[inew] = rowind[i - 1];
+                        newvals[inew] = nzvals[i - 1];
+                        ++inew;
+                    }
+                }
+
+            } /* flo2ho */
 
 /*********************************************************************/
 /*********************************************************************/
@@ -920,87 +911,87 @@ void flo2ho(Index n,
 /*     IP       INTEGER array of size N. (WORK) */
 /*              Work array for pointers. */
 
-template<typename Index>
-void ilo2ho(Index n, Index &hnnz, const Index *colptr, const Index *rowind,
-            Index *newptr, Index *newind, Index *ip) {
-    
-    /* Local variables */
-    Index i, j, nnz, iend, inew, irow, ibegin;
-    
-    nnz = colptr[n] - 1;
-    
-    /*     === work array to accumulate the non-zero */
-    /*         counts for each row === */
-    
-    for (i = 0; i < n; ++i) {
-        ip[i] = 0;
-    }
-    
-    /* Parameter adjustments */
-    --ip;
-    --newptr;
-    --colptr;
-    --rowind;
-    --newind;
-    
-    /*     === nonzero count for each row of the */
-    /*         lower triangular part === */
-    
-    for (j = 1; j <= n; ++j) {
-        ibegin = colptr[j];
-        iend = colptr[j + 1] - 1;
-        for (i = ibegin; i <= iend; ++i) {
-            irow = rowind[i];
-            ++ip[irow];
-        }
-    }
-    
-    /*     === nonzero count for each column === */
-    
-    for (j = 1; j <= n; ++j) {
-        ibegin = colptr[j];
-        iend = colptr[j + 1] - 1;
-        if (iend >= ibegin) {
-            ip[j] = ip[j] + iend - ibegin - 1;
-        }
-    }
-    
-    /*     === compute pointers to the beginning of each column === */
-    
-    newptr[1] = 1;
-    for (i = 1; i <= n; ++i) {
-        newptr[i + 1] = newptr[i] + ip[i];
-    }
-    hnnz = newptr[n + 1] - 1;
-    
-    for (i = 1; i <= n; ++i) {
-        ip[i] = newptr[i];
-    }
-    
-    /*     === copy the upper triangular part === */
-    
-    for (j = 1; j <= n; ++j) {
-        ibegin = colptr[j];
-        iend = colptr[j + 1] - 1;
-        for (i = ibegin + 1; i <= iend; ++i) {
-            irow = rowind[i];
-            newind[ip[irow]] = j;
-            ++ip[irow];
-        }
-    }
-    
-    /*     === copy the lower triangular part === */
-    
-    for (j = 1; j <= n; ++j) {
-        ibegin = colptr[j];
-        iend = colptr[j + 1] - 1;
-        inew = ip[j];
-        for (i = ibegin + 1; i <= iend; ++i) {
-            newind[inew] = rowind[i];
-            ++inew;
-        }
-    }
-} /* ilo2ho */
+            template<typename Index>
+            void ilo2ho(Index n, Index &hnnz, const Index *colptr, const Index *rowind,
+                        Index *newptr, Index *newind, Index *ip) {
+
+                /* Local variables */
+                Index i, j, nnz, iend, inew, irow, ibegin;
+
+                nnz = colptr[n] - 1;
+
+                /*     === work array to accumulate the non-zero */
+                /*         counts for each row === */
+
+                for (i = 0; i < n; ++i) {
+                    ip[i] = 0;
+                }
+
+                /* Parameter adjustments */
+                --ip;
+                --newptr;
+                --colptr;
+                --rowind;
+                --newind;
+
+                /*     === nonzero count for each row of the */
+                /*         lower triangular part === */
+
+                for (j = 1; j <= n; ++j) {
+                    ibegin = colptr[j];
+                    iend = colptr[j + 1] - 1;
+                    for (i = ibegin; i <= iend; ++i) {
+                        irow = rowind[i];
+                        ++ip[irow];
+                    }
+                }
+
+                /*     === nonzero count for each column === */
+
+                for (j = 1; j <= n; ++j) {
+                    ibegin = colptr[j];
+                    iend = colptr[j + 1] - 1;
+                    if (iend >= ibegin) {
+                        ip[j] = ip[j] + iend - ibegin - 1;
+                    }
+                }
+
+                /*     === compute pointers to the beginning of each column === */
+
+                newptr[1] = 1;
+                for (i = 1; i <= n; ++i) {
+                    newptr[i + 1] = newptr[i] + ip[i];
+                }
+                hnnz = newptr[n + 1] - 1;
+
+                for (i = 1; i <= n; ++i) {
+                    ip[i] = newptr[i];
+                }
+
+                /*     === copy the upper triangular part === */
+
+                for (j = 1; j <= n; ++j) {
+                    ibegin = colptr[j];
+                    iend = colptr[j + 1] - 1;
+                    for (i = ibegin + 1; i <= iend; ++i) {
+                        irow = rowind[i];
+                        newind[ip[irow]] = j;
+                        ++ip[irow];
+                    }
+                }
+
+                /*     === copy the lower triangular part === */
+
+                for (j = 1; j <= n; ++j) {
+                    ibegin = colptr[j];
+                    iend = colptr[j + 1] - 1;
+                    inew = ip[j];
+                    for (i = ibegin + 1; i <= iend; ++i) {
+                        newind[inew] = rowind[i];
+                        ++inew;
+                    }
+                }
+            } /* ilo2ho */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1041,61 +1032,61 @@ void ilo2ho(Index n, Index &hnnz, const Index *colptr, const Index *rowind,
 /*       ---------------------------------------- */
 /* *********************************************************************** */
 
-template<typename Index>
-void fntsiz(Index nsuper, const Index *xsuper, const Index *snode,
-            const Index *xlindx, const Index *lindx,
-            Index &tmpsiz) {
-    
-    /* Local variables */
-    Index ii, iend, clen, ksup, bound, ncols, width, tsize, ibegin, length,
-    cursup, nxtsup;
-    
-    /* Parameter adjustments */
-    --lindx;
-    --xlindx;
-    --snode;
-    --xsuper;
-    
-    /* Function Body */
-    tmpsiz = 0;
-    for (ksup = nsuper; ksup >= 1; --ksup) {
-        ncols = xsuper[ksup + 1] - xsuper[ksup];
-        ibegin = xlindx[ksup] + ncols;
-        iend = xlindx[ksup + 1] - 1;
-        length = iend - ibegin + 1;
-        bound = length * (length + 1) / 2;
-        if (bound > tmpsiz) {
-            cursup = snode[lindx[ibegin]];
-            clen = xlindx[cursup + 1] - xlindx[cursup];
-            width = 0;
-            for (ii = ibegin; ii <= iend; ++ii) {
-                nxtsup = snode[lindx[ii]];
-                if (nxtsup == cursup) {
-                    ++width;
-                    if (ii == iend) {
-                        if (clen > length) {
-                            tsize = length * width - (width - 1) * width / 2;
-                            tmpsiz = std::max(tsize, tmpsiz);
+            template<typename Index>
+            void fntsiz(Index nsuper, const Index *xsuper, const Index *snode,
+                        const Index *xlindx, const Index *lindx,
+                        Index &tmpsiz) {
+
+                /* Local variables */
+                Index ii, iend, clen, ksup, bound, ncols, width, tsize, ibegin, length,
+                        cursup, nxtsup;
+
+                /* Parameter adjustments */
+                --lindx;
+                --xlindx;
+                --snode;
+                --xsuper;
+
+                /* Function Body */
+                tmpsiz = 0;
+                for (ksup = nsuper; ksup >= 1; --ksup) {
+                    ncols = xsuper[ksup + 1] - xsuper[ksup];
+                    ibegin = xlindx[ksup] + ncols;
+                    iend = xlindx[ksup + 1] - 1;
+                    length = iend - ibegin + 1;
+                    bound = length * (length + 1) / 2;
+                    if (bound > tmpsiz) {
+                        cursup = snode[lindx[ibegin]];
+                        clen = xlindx[cursup + 1] - xlindx[cursup];
+                        width = 0;
+                        for (ii = ibegin; ii <= iend; ++ii) {
+                            nxtsup = snode[lindx[ii]];
+                            if (nxtsup == cursup) {
+                                ++width;
+                                if (ii == iend) {
+                                    if (clen > length) {
+                                        tsize = length * width - (width - 1) * width / 2;
+                                        tmpsiz = std::max(tsize, tmpsiz);
+                                    }
+                                }
+                            } else {
+                                if (clen > length) {
+                                    tsize = length * width - (width - 1) * width / 2;
+                                    tmpsiz = std::max(tsize, tmpsiz);
+                                }
+                                length -= width;
+                                bound = length * (length + 1) / 2;
+                                if (bound <= tmpsiz) {
+                                    break;
+                                }
+                                width = 1;
+                                cursup = nxtsup;
+                                clen = xlindx[cursup + 1] - xlindx[cursup];
+                            }
                         }
                     }
-                } else {
-                    if (clen > length) {
-                        tsize = length * width - (width - 1) * width / 2;
-                        tmpsiz = std::max(tsize, tmpsiz);
-                    }
-                    length -= width;
-                    bound = length * (length + 1) / 2;
-                    if (bound <= tmpsiz) {
-                        break;
-                    }
-                    width = 1;
-                    cursup = nxtsup;
-                    clen = xlindx[cursup + 1] - xlindx[cursup];
                 }
-            }
-        }
-    }
-} /* fntsiz */
+            } /* fntsiz */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1133,97 +1124,97 @@ void fntsiz(Index nsuper, const Index *xsuper, const Index *snode,
 
 /* *********************************************************************** */
 
-template<typename Index>
-void fnsplt(Index neqns, Index nsuper,
-            const Index *xsuper, const Index *xlindx,
-            Index cachsz, Index *split) {
-    /* Local variables */
-    Index used, ksup, cache, ncols, width, height, curcol, fstcol, lstcol,
-    nxtblk;
-    
-    /*       -------------------------------------------- */
-    /*       COMPUTE THE NUMBER OF 8-BYTE WORDS IN CACHE. */
-    /*       -------------------------------------------- */
-    if (cachsz <= 0) {
-        cache = 2000000000;
-    } else {
-        constexpr double tmpf = 1024.0 / 8 * 9.;
-        cache = static_cast<Index>(static_cast<double>(cachsz) * tmpf);
-    }
-    
-    /*       --------------- */
-    /*       INITIALIZATION. */
-    /*       --------------- */
-    for (Index kcol = 0; kcol < neqns; ++kcol) {
-        split[kcol] = 0;
-    }
-    
-    /* Parameter adjustments */
-    --split;
-    --xlindx;
-    --xsuper;
-    
-    /*       --------------------------- */
-    /*       FOR EACH SUPERNODE KSUP ... */
-    /*       --------------------------- */
-    for (ksup = 1; ksup <= nsuper; ++ksup) {
-        /*           ----------------------- */
-        /*           ... GET SUPERNODE INFO. */
-        /*           ----------------------- */
-        height = xlindx[ksup + 1] - xlindx[ksup];
-        fstcol = xsuper[ksup];
-        lstcol = xsuper[ksup + 1] - 1;
-        width = lstcol - fstcol + 1;
-        nxtblk = fstcol;
-        /*           -------------------------------------- */
-        /*           ... UNTIL ALL COLUMNS OF THE SUPERNODE */
-        /*               HAVE BEEN PROCESSED ... */
-        /*           -------------------------------------- */
-        curcol = fstcol - 1;
-    L200:
-        /*               ------------------------------------------- */
-        /*               ... PLACE THE FIRST COLUMN(S) IN THE CACHE. */
-        /*               ------------------------------------------- */
-        ++curcol;
-        if (curcol < lstcol) {
-            ++curcol;
-            ncols = 2;
-            used = height * 3 - 1;
-            height += -2;
-        } else {
-            ncols = 1;
-            used = height << 1;
-            --height;
-        }
-        
-        /*               -------------------------------------- */
-        /*               ... WHILE THE CACHE IS NOT FILLED AND */
-        /*                   THERE ARE COLUMNS OF THE SUPERNODE */
-        /*                   REMAINING TO BE PROCESSED ... */
-        /*               -------------------------------------- */
-        while (used + height < cache && curcol < lstcol) {
-            /*                   -------------------------------- */
-            /*                   ... ADD ANOTHER COLUMN TO CACHE. */
-            /*                   -------------------------------- */
-            ++curcol;
-            ++ncols;
-            used += height;
-            --height;
-        }
-        /*               ------------------------------------- */
-        /*               ... RECORD THE NUMBER OF COLUMNS THAT */
-        /*                   FILLED THE CACHE. */
-        /*               ------------------------------------- */
-        split[nxtblk] = ncols;
-        ++nxtblk;
-        /*               -------------------------- */
-        /*               ... GO PROCESS NEXT BLOCK. */
-        /*               -------------------------- */
-        if (curcol < lstcol) {
-            goto L200;
-        }
-    }
-} /* fnsplt */
+            template<typename Index>
+            void fnsplt(Index neqns, Index nsuper,
+                        const Index *xsuper, const Index *xlindx,
+                        Index cachsz, Index *split) {
+                /* Local variables */
+                Index used, ksup, cache, ncols, width, height, curcol, fstcol, lstcol,
+                        nxtblk;
+
+                /*       -------------------------------------------- */
+                /*       COMPUTE THE NUMBER OF 8-BYTE WORDS IN CACHE. */
+                /*       -------------------------------------------- */
+                if (cachsz <= 0) {
+                    cache = 2000000000;
+                } else {
+                    constexpr double tmpf = 1024.0 / 8 * 9.;
+                    cache = static_cast<Index>(static_cast<double>(cachsz) * tmpf);
+                }
+
+                /*       --------------- */
+                /*       INITIALIZATION. */
+                /*       --------------- */
+                for (Index kcol = 0; kcol < neqns; ++kcol) {
+                    split[kcol] = 0;
+                }
+
+                /* Parameter adjustments */
+                --split;
+                --xlindx;
+                --xsuper;
+
+                /*       --------------------------- */
+                /*       FOR EACH SUPERNODE KSUP ... */
+                /*       --------------------------- */
+                for (ksup = 1; ksup <= nsuper; ++ksup) {
+                    /*           ----------------------- */
+                    /*           ... GET SUPERNODE INFO. */
+                    /*           ----------------------- */
+                    height = xlindx[ksup + 1] - xlindx[ksup];
+                    fstcol = xsuper[ksup];
+                    lstcol = xsuper[ksup + 1] - 1;
+                    width = lstcol - fstcol + 1;
+                    nxtblk = fstcol;
+                    /*           -------------------------------------- */
+                    /*           ... UNTIL ALL COLUMNS OF THE SUPERNODE */
+                    /*               HAVE BEEN PROCESSED ... */
+                    /*           -------------------------------------- */
+                    curcol = fstcol - 1;
+                    L200:
+                    /*               ------------------------------------------- */
+                    /*               ... PLACE THE FIRST COLUMN(S) IN THE CACHE. */
+                    /*               ------------------------------------------- */
+                    ++curcol;
+                    if (curcol < lstcol) {
+                        ++curcol;
+                        ncols = 2;
+                        used = height * 3 - 1;
+                        height += -2;
+                    } else {
+                        ncols = 1;
+                        used = height << 1;
+                        --height;
+                    }
+
+                    /*               -------------------------------------- */
+                    /*               ... WHILE THE CACHE IS NOT FILLED AND */
+                    /*                   THERE ARE COLUMNS OF THE SUPERNODE */
+                    /*                   REMAINING TO BE PROCESSED ... */
+                    /*               -------------------------------------- */
+                    while (used + height < cache && curcol < lstcol) {
+                        /*                   -------------------------------- */
+                        /*                   ... ADD ANOTHER COLUMN TO CACHE. */
+                        /*                   -------------------------------- */
+                        ++curcol;
+                        ++ncols;
+                        used += height;
+                        --height;
+                    }
+                    /*               ------------------------------------- */
+                    /*               ... RECORD THE NUMBER OF COLUMNS THAT */
+                    /*                   FILLED THE CACHE. */
+                    /*               ------------------------------------- */
+                    split[nxtblk] = ncols;
+                    ++nxtblk;
+                    /*               -------------------------- */
+                    /*               ... GO PROCESS NEXT BLOCK. */
+                    /*               -------------------------- */
+                    if (curcol < lstcol) {
+                        goto L200;
+                    }
+                }
+            } /* fnsplt */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1300,175 +1291,175 @@ void fnsplt(Index neqns, Index nsuper,
 
 /* *********************************************************************** */
 
-template<typename Index>
-void fcnthn(Index neqns, const Index *xadj, const Index *adjncy, const Index *perm,
-            const Index *invp, const Index *etpar,
-            Index *rowcnt, Index *colcnt, Index &nlnz,
-            Index *set, Index *prvlf, Index *level, Index *weight, Index *fdesc,
-            Index *nchild, Index *prvnbr) {
-    
-    /* Local variables */
-    Index j, k, lca, temp, xsup, last1, last2, lflag, pleaf, hinbr, jstop,
-    jstrt, ifdesc, oldnbr, parent, lownbr;
-    
-    /* *********************************************************************** */
-    
-    /*       -------------------------------------------------- */
-    /*       COMPUTE LEVEL(*), FDESC(*), NCHILD(*). */
-    /*       INITIALIZE XSUP, ROWCNT(*), COLCNT(*), */
-    /*                  SET(*), PRVLF(*), WEIGHT(*), PRVNBR(*). */
-    /*       -------------------------------------------------- */
-    /* Parameter adjustments */
-    --prvnbr;
-    --prvlf;
-    --set;
-    --colcnt;
-    --rowcnt;
-    --etpar;
-    --invp;
-    --perm;
-    --adjncy;
-    --xadj;
-    
-    level[0] = 0;
-    for (k = neqns; k >= 1; --k) {
-        rowcnt[k] = 1;
-        colcnt[k] = 0;
-        set[k] = k;
-        prvlf[k] = 0;
-        level[k] = level[etpar[k]] + 1;
-        weight[k] = 1;
-        fdesc[k] = k;
-        nchild[k] = 0;
-        prvnbr[k] = 0;
-    }
-    nchild[0] = 0;
-    fdesc[0] = 0;
-    for (k = 1; k <= neqns; ++k) {
-        parent = etpar[k];
-        weight[parent] = 0;
-        ++nchild[parent];
-        ifdesc = fdesc[k];
-        if (ifdesc < fdesc[parent]) {
-            fdesc[parent] = ifdesc;
-        }
-    }
-    /*       ------------------------------------ */
-    /*       FOR EACH ``LOW NEIGHBOR'' LOWNBR ... */
-    /*       ------------------------------------ */
-    for (lownbr = 1; lownbr <= neqns; ++lownbr) {
-        lflag = 0;
-        ifdesc = fdesc[lownbr];
-        oldnbr = perm[lownbr];
-        jstrt = xadj[oldnbr];
-        jstop = xadj[oldnbr + 1] - 1;
-        /*           -------------------------------------------- */
-        /*           ISOLATED VERTEX IS LEAF IN OWN LEAF SUBTREE. */
-        /*           -------------------------------------------- */
-        if (jstrt > jstop) {
-            lflag = 1;
-        }
-        /*           ----------------------------------------------- */
-        /*           FOR EACH ``HIGH NEIGHBOR'', HINBR OF LOWNBR ... */
-        /*           ----------------------------------------------- */
-        for (j = jstrt; j <= jstop; ++j) {
-            hinbr = invp[adjncy[j]];
-            if (hinbr > lownbr) {
-                if (ifdesc > prvnbr[hinbr]) {
-                    /*                       ------------------------- */
-                    /*                       INCREMENT WEIGHT(LOWNBR). */
-                    /*                       ------------------------- */
-                    ++weight[lownbr];
-                    pleaf = prvlf[hinbr];
-                    /*                       ----------------------------------------- */
-                    /*                       IF HINBR HAS NO PREVIOUS ``LOW NEIGHBOR'' */
-                    /*                       THEN ... */
-                    /*                       ----------------------------------------- */
-                    if (pleaf == 0) {
-                        /*                  ---------------------------------------- */
-                        /*     ... ACCUMULATE LOWNBR-->HINBR PATH * LENGTH */
-                        /*                               IN ROWCNT(HINBR). */
-                        /*                           -----------------------------------------
-                         */
-                        rowcnt[hinbr] = rowcnt[hinbr] + level[lownbr] - level[hinbr];
-                    } else {
-                        /*                           -----------------------------------------
-                         */
-                        /*                           ... OTHERWISE, LCA <-- FIND(PLEAF),
-                         * WHICH */
-                        /*                               IS THE LEAST COMMON ANCESTOR OF
-                         * PLEAF */
-                        /*                               AND LOWNBR. */
-                        /*                               (PATH HALVING.) */
-                        /*                           -----------------------------------------
-                         */
-                        last1 = pleaf;
-                        last2 = set[last1];
-                        lca = set[last2];
-                    L300:
-                        if (lca != last2) {
-                            set[last1] = lca;
-                            last1 = lca;
-                            last2 = set[last1];
-                            lca = set[last2];
-                            goto L300;
-                        }
-                        /*                           -------------------------------------
-                         */
-                        /*                           ACCUMULATE PLEAF-->LCA PATH LENGTH IN
-                         */
-                        /*                           ROWCNT(HINBR). */
-                        /*                           DECREMENT WEIGHT(LCA). */
-                        /*                           -------------------------------------
-                         */
-                        rowcnt[hinbr] = rowcnt[hinbr] + level[lownbr] - level[lca];
-                        --weight[lca];
-                    }
-                    /*                       ----------------------------------------------
-                     */
-                    /*                       LOWNBR NOW BECOMES ``PREVIOUS LEAF'' OF
-                     * HINBR. */
-                    /*                       ----------------------------------------------
-                     */
-                    prvlf[hinbr] = lownbr;
-                    lflag = 1;
+            template<typename Index>
+            void fcnthn(Index neqns, const Index *xadj, const Index *adjncy, const Index *perm,
+                        const Index *invp, const Index *etpar,
+                        Index *rowcnt, Index *colcnt, Index &nlnz,
+                        Index *set, Index *prvlf, Index *level, Index *weight, Index *fdesc,
+                        Index *nchild, Index *prvnbr) {
+
+                /* Local variables */
+                Index j, k, lca, temp, xsup, last1, last2, lflag, pleaf, hinbr, jstop,
+                        jstrt, ifdesc, oldnbr, parent, lownbr;
+
+                /* *********************************************************************** */
+
+                /*       -------------------------------------------------- */
+                /*       COMPUTE LEVEL(*), FDESC(*), NCHILD(*). */
+                /*       INITIALIZE XSUP, ROWCNT(*), COLCNT(*), */
+                /*                  SET(*), PRVLF(*), WEIGHT(*), PRVNBR(*). */
+                /*       -------------------------------------------------- */
+                /* Parameter adjustments */
+                --prvnbr;
+                --prvlf;
+                --set;
+                --colcnt;
+                --rowcnt;
+                --etpar;
+                --invp;
+                --perm;
+                --adjncy;
+                --xadj;
+
+                level[0] = 0;
+                for (k = neqns; k >= 1; --k) {
+                    rowcnt[k] = 1;
+                    colcnt[k] = 0;
+                    set[k] = k;
+                    prvlf[k] = 0;
+                    level[k] = level[etpar[k]] + 1;
+                    weight[k] = 1;
+                    fdesc[k] = k;
+                    nchild[k] = 0;
+                    prvnbr[k] = 0;
                 }
-                /*                   --------------------------------------------------
-                 */
-                /*                   LOWNBR NOW BECOMES ``PREVIOUS NEIGHBOR'' OF HINBR.
-                 */
-                /*                   --------------------------------------------------
-                 */
-                prvnbr[hinbr] = lownbr;
-            }
-            /* L500: */
-        }
-        /*           ---------------------------------------------------- */
-        /*           DECREMENT WEIGHT ( PARENT(LOWNBR) ). */
-        /*           SET ( P(LOWNBR) ) <-- SET ( P(LOWNBR) ) + SET(XSUP). */
-        /*           ---------------------------------------------------- */
-        parent = etpar[lownbr];
-        --weight[parent];
-        if (lflag == 1 || nchild[lownbr] >= 2) {
-            xsup = lownbr;
-        }
-        set[xsup] = parent;
-        /* L600: */
-    }
-    /*       --------------------------------------------------------- */
-    /*       USE WEIGHTS TO COMPUTE COLUMN (AND TOTAL) NONZERO COUNTS. */
-    /*       --------------------------------------------------------- */
-    nlnz = 0;
-    for (k = 1; k <= neqns; ++k) {
-        temp = colcnt[k] + weight[k];
-        colcnt[k] = temp;
-        nlnz += temp;
-        parent = etpar[k];
-        if (parent != 0) {
-            colcnt[parent] += temp;
-        }
-    }
-} /* fcnthn */
+                nchild[0] = 0;
+                fdesc[0] = 0;
+                for (k = 1; k <= neqns; ++k) {
+                    parent = etpar[k];
+                    weight[parent] = 0;
+                    ++nchild[parent];
+                    ifdesc = fdesc[k];
+                    if (ifdesc < fdesc[parent]) {
+                        fdesc[parent] = ifdesc;
+                    }
+                }
+                /*       ------------------------------------ */
+                /*       FOR EACH ``LOW NEIGHBOR'' LOWNBR ... */
+                /*       ------------------------------------ */
+                for (lownbr = 1; lownbr <= neqns; ++lownbr) {
+                    lflag = 0;
+                    ifdesc = fdesc[lownbr];
+                    oldnbr = perm[lownbr];
+                    jstrt = xadj[oldnbr];
+                    jstop = xadj[oldnbr + 1] - 1;
+                    /*           -------------------------------------------- */
+                    /*           ISOLATED VERTEX IS LEAF IN OWN LEAF SUBTREE. */
+                    /*           -------------------------------------------- */
+                    if (jstrt > jstop) {
+                        lflag = 1;
+                    }
+                    /*           ----------------------------------------------- */
+                    /*           FOR EACH ``HIGH NEIGHBOR'', HINBR OF LOWNBR ... */
+                    /*           ----------------------------------------------- */
+                    for (j = jstrt; j <= jstop; ++j) {
+                        hinbr = invp[adjncy[j]];
+                        if (hinbr > lownbr) {
+                            if (ifdesc > prvnbr[hinbr]) {
+                                /*                       ------------------------- */
+                                /*                       INCREMENT WEIGHT(LOWNBR). */
+                                /*                       ------------------------- */
+                                ++weight[lownbr];
+                                pleaf = prvlf[hinbr];
+                                /*                       ----------------------------------------- */
+                                /*                       IF HINBR HAS NO PREVIOUS ``LOW NEIGHBOR'' */
+                                /*                       THEN ... */
+                                /*                       ----------------------------------------- */
+                                if (pleaf == 0) {
+                                    /*                  ---------------------------------------- */
+                                    /*     ... ACCUMULATE LOWNBR-->HINBR PATH * LENGTH */
+                                    /*                               IN ROWCNT(HINBR). */
+                                    /*                           -----------------------------------------
+                                     */
+                                    rowcnt[hinbr] = rowcnt[hinbr] + level[lownbr] - level[hinbr];
+                                } else {
+                                    /*                           -----------------------------------------
+                                     */
+                                    /*                           ... OTHERWISE, LCA <-- FIND(PLEAF),
+                                     * WHICH */
+                                    /*                               IS THE LEAST COMMON ANCESTOR OF
+                                     * PLEAF */
+                                    /*                               AND LOWNBR. */
+                                    /*                               (PATH HALVING.) */
+                                    /*                           -----------------------------------------
+                                     */
+                                    last1 = pleaf;
+                                    last2 = set[last1];
+                                    lca = set[last2];
+                                    L300:
+                                    if (lca != last2) {
+                                        set[last1] = lca;
+                                        last1 = lca;
+                                        last2 = set[last1];
+                                        lca = set[last2];
+                                        goto L300;
+                                    }
+                                    /*                           -------------------------------------
+                                     */
+                                    /*                           ACCUMULATE PLEAF-->LCA PATH LENGTH IN
+                                     */
+                                    /*                           ROWCNT(HINBR). */
+                                    /*                           DECREMENT WEIGHT(LCA). */
+                                    /*                           -------------------------------------
+                                     */
+                                    rowcnt[hinbr] = rowcnt[hinbr] + level[lownbr] - level[lca];
+                                    --weight[lca];
+                                }
+                                /*                       ----------------------------------------------
+                                 */
+                                /*                       LOWNBR NOW BECOMES ``PREVIOUS LEAF'' OF
+                                 * HINBR. */
+                                /*                       ----------------------------------------------
+                                 */
+                                prvlf[hinbr] = lownbr;
+                                lflag = 1;
+                            }
+                            /*                   --------------------------------------------------
+                             */
+                            /*                   LOWNBR NOW BECOMES ``PREVIOUS NEIGHBOR'' OF HINBR.
+                             */
+                            /*                   --------------------------------------------------
+                             */
+                            prvnbr[hinbr] = lownbr;
+                        }
+                        /* L500: */
+                    }
+                    /*           ---------------------------------------------------- */
+                    /*           DECREMENT WEIGHT ( PARENT(LOWNBR) ). */
+                    /*           SET ( P(LOWNBR) ) <-- SET ( P(LOWNBR) ) + SET(XSUP). */
+                    /*           ---------------------------------------------------- */
+                    parent = etpar[lownbr];
+                    --weight[parent];
+                    if (lflag == 1 || nchild[lownbr] >= 2) {
+                        xsup = lownbr;
+                    }
+                    set[xsup] = parent;
+                    /* L600: */
+                }
+                /*       --------------------------------------------------------- */
+                /*       USE WEIGHTS TO COMPUTE COLUMN (AND TOTAL) NONZERO COUNTS. */
+                /*       --------------------------------------------------------- */
+                nlnz = 0;
+                for (k = 1; k <= neqns; ++k) {
+                    temp = colcnt[k] + weight[k];
+                    colcnt[k] = temp;
+                    nlnz += temp;
+                    parent = etpar[k];
+                    if (parent != 0) {
+                        colcnt[parent] += temp;
+                    }
+                }
+            } /* fcnthn */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1499,16 +1490,16 @@ void fcnthn(Index neqns, const Index *xadj, const Index *adjncy, const Index *pe
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void igathr(Index klen, const Index *lindx, const Index *indmap,
-            Index *relind) {
-    /* Parameter adjustments */
-    --indmap;
-    /* Function Body */
-    for (Index i = 0; i < klen; ++i) {
-        relind[i] = indmap[lindx[i]];
-    }
-} /* igathr */
+            template<typename Index = int64_t>
+            void igathr(Index klen, const Index *lindx, const Index *indmap,
+                        Index *relind) {
+                /* Parameter adjustments */
+                --indmap;
+                /* Function Body */
+                for (Index i = 0; i < klen; ++i) {
+                    relind[i] = indmap[lindx[i]];
+                }
+            } /* igathr */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1526,81 +1517,81 @@ void igathr(Index klen, const Index *lindx, const Index *indmap,
 /*     INPUT NUMERICAL VALUES INTO SPARSE DATA STRUCTURES ... */
 /*     ------------------------------------------------------ */
 
-template<typename Scalar, typename Index>
-void inpnv(Index neqns, Index *xadjf, Index *adjf, Scalar *anzf,
-           Index *perm, Index *invp, Index nsuper, Index *xsuper,
-           Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Index iwsiz,
-           Index *offset, Index &iflag) {
-    /* System generated locals */
-    Index i__4;
-    
-    /* Local variables */
-    Index i, j, ii, jlen, oldj, last, jsuper;
-    
-    /* Function Body */
-    iflag = 0;
-    if (iwsiz < neqns) {
-        iflag = -1;
-        std::cerr << "\n";
-        std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
-        std::cerr << "*** IS SMALLER THAN REQUIRED = " << neqns << "\n";
-        std::cerr << "\n";
-        return;
-    }
-    
-    /* Parameter adjustments */
-    --offset;
-    --lnz;
-    --xlnz;
-    --lindx;
-    --xlindx;
-    --xsuper;
-    --invp;
-    --perm;
-    --anzf;
-    --adjf;
-    --xadjf;
-    
-    for (jsuper = 1; jsuper <= nsuper; ++jsuper) {
-        
-        /*           ---------------------------------------- */
-        /*           FOR EACH SUPERNODE, DO THE FOLLOWING ... */
-        /*           ---------------------------------------- */
-        
-        /*           ----------------------------------------------- */
-        /*           FIRST GET OFFSET TO FACILITATE NUMERICAL INPUT. */
-        /*           ----------------------------------------------- */
-        jlen = xlindx[jsuper + 1] - xlindx[jsuper];
-        for (ii = xlindx[jsuper]; ii < xlindx[jsuper + 1]; ++ii) {
-            i = lindx[ii];
-            --jlen;
-            offset[i] = jlen;
-        }
-        
-        for (j = xsuper[jsuper]; j < xsuper[jsuper + 1]; ++j) {
-            /*               ----------------------------------------- */
-            /*               FOR EACH COLUMN IN THE CURRENT SUPERNODE, */
-            /*               FIRST INITIALIZE THE DATA STRUCTURE. */
-            /*               ----------------------------------------- */
-            for (ii = xlnz[j]; ii < xlnz[j + 1]; ++ii) {
-                lnz[ii] = 0;
-            }
-            
-            /*               ----------------------------------- */
-            /*               NEXT INPUT THE INDIVIDUAL NONZEROS. */
-            /*               ----------------------------------- */
-            oldj = perm[j];
-            last = xlnz[j + 1] - 1;
-            for (ii = xadjf[oldj]; ii < xadjf[oldj + 1]; ++ii) {
-                i = invp[adjf[ii]];
-                if (i >= j) {
-                    i__4 = last - offset[i];
-                    lnz[i__4] = anzf[ii];
+            template<typename Scalar, typename Index>
+            void inpnv(Index neqns, Index *xadjf, Index *adjf, Scalar *anzf,
+                       Index *perm, Index *invp, Index nsuper, Index *xsuper,
+                       Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Index iwsiz,
+                       Index *offset, Index &iflag) {
+                /* System generated locals */
+                Index i__4;
+
+                /* Local variables */
+                Index i, j, ii, jlen, oldj, last, jsuper;
+
+                /* Function Body */
+                iflag = 0;
+                if (iwsiz < neqns) {
+                    iflag = -1;
+                    std::cerr << "\n";
+                    std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
+                    std::cerr << "*** IS SMALLER THAN REQUIRED = " << neqns << "\n";
+                    std::cerr << "\n";
+                    return;
                 }
-            }
-        }
-    }
-} /* inpnv */
+
+                /* Parameter adjustments */
+                --offset;
+                --lnz;
+                --xlnz;
+                --lindx;
+                --xlindx;
+                --xsuper;
+                --invp;
+                --perm;
+                --anzf;
+                --adjf;
+                --xadjf;
+
+                for (jsuper = 1; jsuper <= nsuper; ++jsuper) {
+
+                    /*           ---------------------------------------- */
+                    /*           FOR EACH SUPERNODE, DO THE FOLLOWING ... */
+                    /*           ---------------------------------------- */
+
+                    /*           ----------------------------------------------- */
+                    /*           FIRST GET OFFSET TO FACILITATE NUMERICAL INPUT. */
+                    /*           ----------------------------------------------- */
+                    jlen = xlindx[jsuper + 1] - xlindx[jsuper];
+                    for (ii = xlindx[jsuper]; ii < xlindx[jsuper + 1]; ++ii) {
+                        i = lindx[ii];
+                        --jlen;
+                        offset[i] = jlen;
+                    }
+
+                    for (j = xsuper[jsuper]; j < xsuper[jsuper + 1]; ++j) {
+                        /*               ----------------------------------------- */
+                        /*               FOR EACH COLUMN IN THE CURRENT SUPERNODE, */
+                        /*               FIRST INITIALIZE THE DATA STRUCTURE. */
+                        /*               ----------------------------------------- */
+                        for (ii = xlnz[j]; ii < xlnz[j + 1]; ++ii) {
+                            lnz[ii] = 0;
+                        }
+
+                        /*               ----------------------------------- */
+                        /*               NEXT INPUT THE INDIVIDUAL NONZEROS. */
+                        /*               ----------------------------------- */
+                        oldj = perm[j];
+                        last = xlnz[j + 1] - 1;
+                        for (ii = xadjf[oldj]; ii < xadjf[oldj + 1]; ++ii) {
+                            i = invp[adjf[ii]];
+                            if (i >= j) {
+                                i__4 = last - offset[i];
+                                lnz[i__4] = anzf[ii];
+                            }
+                        }
+                    }
+                }
+            } /* inpnv */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1640,21 +1631,21 @@ void inpnv(Index neqns, Index *xadjf, Index *adjf, Scalar *anzf,
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void ldindx(Index jlen, Index *lindx, Index *indmap) {
-    /* Local variables */
-    Index j, jsub, curlen;
-    
-    /* Parameter adjustments */
-    --indmap;
-    
-    curlen = jlen;
-    for (j = 0; j < jlen; ++j) {
-        jsub = lindx[j];
-        --curlen;
-        indmap[jsub] = curlen;
-    }
-} /* ldindx */
+            template<typename Index = int64_t>
+            void ldindx(Index jlen, Index *lindx, Index *indmap) {
+                /* Local variables */
+                Index j, jsub, curlen;
+
+                /* Parameter adjustments */
+                --indmap;
+
+                curlen = jlen;
+                for (j = 0; j < jlen; ++j) {
+                    jsub = lindx[j];
+                    --curlen;
+                    indmap[jsub] = curlen;
+                }
+            } /* ldindx */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1690,62 +1681,62 @@ void ldindx(Index jlen, Index *lindx, Index *indmap) {
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void etree(Index neqns, Index *xadj, Index *adjncy, Index *perm, Index *invp,
-           Index *parent, Index *ancstr) {
-    /* Local variables */
-    Index i, j, nbr, node, next, jstop, jstrt;
-    
-    if (neqns <= 0) {
-        return;
-    }
-    
-    /* Parameter adjustments */
-    --ancstr;
-    --parent;
-    --invp;
-    --perm;
-    --adjncy;
-    --xadj;
-    
-    for (i = 1; i <= neqns; ++i) {
-        parent[i] = 0;
-        ancstr[i] = 0;
-        node = perm[i];
-        
-        jstrt = xadj[node];
-        jstop = xadj[node + 1] - 1;
-        if (jstrt <= jstop) {
-            for (j = jstrt; j <= jstop; ++j) {
-                nbr = adjncy[j];
-                nbr = invp[nbr];
-                if (nbr < i) {
-                    /*                       ------------------------------------------- */
-                    /*                       FOR EACH NBR, FIND THE ROOT OF ITS CURRENT */
-                    /*                       ELIMINATION TREE.  PERFORM PATH COMPRESSION */
-                    /*                       AS THE SUBTREE IS TRAVERSED. */
-                    /*                       ------------------------------------------- */
-                L100:
-                    if (ancstr[nbr] == i) {
-                        continue;
-                    }
-                    if (ancstr[nbr] > 0) {
-                        next = ancstr[nbr];
-                        ancstr[nbr] = i;
-                        nbr = next;
-                        goto L100;
-                    }
-                    /*  -------------------------------------------- */
-                    /*    NOW, NBR IS THE ROOT OF THE SUBTREE. */
-                    /*    MAKE I THE PARENT NODE OF THIS ROOT. */
-                    /*  ------------------------------------------- */
-                    parent[nbr] = i;
-                    ancstr[nbr] = i;
+            template<typename Index = int64_t>
+            void etree(Index neqns, Index *xadj, Index *adjncy, Index *perm, Index *invp,
+                       Index *parent, Index *ancstr) {
+                /* Local variables */
+                Index i, j, nbr, node, next, jstop, jstrt;
+
+                if (neqns <= 0) {
+                    return;
                 }
-            }
-        }
-    }
-} /* etree */
+
+                /* Parameter adjustments */
+                --ancstr;
+                --parent;
+                --invp;
+                --perm;
+                --adjncy;
+                --xadj;
+
+                for (i = 1; i <= neqns; ++i) {
+                    parent[i] = 0;
+                    ancstr[i] = 0;
+                    node = perm[i];
+
+                    jstrt = xadj[node];
+                    jstop = xadj[node + 1] - 1;
+                    if (jstrt <= jstop) {
+                        for (j = jstrt; j <= jstop; ++j) {
+                            nbr = adjncy[j];
+                            nbr = invp[nbr];
+                            if (nbr < i) {
+                                /*                       ------------------------------------------- */
+                                /*                       FOR EACH NBR, FIND THE ROOT OF ITS CURRENT */
+                                /*                       ELIMINATION TREE.  PERFORM PATH COMPRESSION */
+                                /*                       AS THE SUBTREE IS TRAVERSED. */
+                                /*                       ------------------------------------------- */
+                                L100:
+                                if (ancstr[nbr] == i) {
+                                    continue;
+                                }
+                                if (ancstr[nbr] > 0) {
+                                    next = ancstr[nbr];
+                                    ancstr[nbr] = i;
+                                    nbr = next;
+                                    goto L100;
+                                }
+                                /*  -------------------------------------------- */
+                                /*    NOW, NBR IS THE ROOT OF THE SUBTREE. */
+                                /*    MAKE I THE PARENT NODE OF THIS ROOT. */
+                                /*  ------------------------------------------- */
+                                parent[nbr] = i;
+                                ancstr[nbr] = i;
+                            }
+                        }
+                    }
+                }
+            } /* etree */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1794,31 +1785,31 @@ void etree(Index neqns, Index *xadj, Index *adjncy, Index *perm, Index *invp,
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void etordr(Index neqns, Index *xadj, Index *adjncy, Index *perm, Index *invp,
-            Index *parent, Index *fson, Index *brothr, Index *invpos) {
-    
-    /*       ----------------------------- */
-    /*       COMPUTE THE ELIMINATION TREE. */
-    /*       ----------------------------- */
-    etree(neqns, xadj, adjncy, perm, invp, parent, invpos);
-    
-    /*       -------------------------------------------------------- */
-    /*       COMPUTE A BINARY REPRESENTATION OF THE ELIMINATION TREE. */
-    /*       -------------------------------------------------------- */
-    betree(neqns, parent, fson, brothr);
-    
-    /*       ------------------------------- */
-    /*       POSTORDER THE ELIMINATION TREE. */
-    /*       ------------------------------- */
-    etpost(neqns, fson, brothr, invpos, parent, perm);
-    
-    /*       -------------------------------------------------------- */
-    /*       COMPOSE THE ORIGINAL ORDERING WITH THE NEW POSTORDERING. */
-    /*       -------------------------------------------------------- */
-    invinv(neqns, invp, invpos, perm);
-    
-} /* etordr */
+            template<typename Index = int64_t>
+            void etordr(Index neqns, Index *xadj, Index *adjncy, Index *perm, Index *invp,
+                        Index *parent, Index *fson, Index *brothr, Index *invpos) {
+
+                /*       ----------------------------- */
+                /*       COMPUTE THE ELIMINATION TREE. */
+                /*       ----------------------------- */
+                etree(neqns, xadj, adjncy, perm, invp, parent, invpos);
+
+                /*       -------------------------------------------------------- */
+                /*       COMPUTE A BINARY REPRESENTATION OF THE ELIMINATION TREE. */
+                /*       -------------------------------------------------------- */
+                betree(neqns, parent, fson, brothr);
+
+                /*       ------------------------------- */
+                /*       POSTORDER THE ELIMINATION TREE. */
+                /*       ------------------------------- */
+                etpost(neqns, fson, brothr, invpos, parent, perm);
+
+                /*       -------------------------------------------------------- */
+                /*       COMPOSE THE ORIGINAL ORDERING WITH THE NEW POSTORDERING. */
+                /*       -------------------------------------------------------- */
+                invinv(neqns, invp, invpos, perm);
+
+            } /* etordr */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -1861,294 +1852,294 @@ void etordr(Index neqns, Index *xadj, Index *adjncy, Index *perm, Index *invp,
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-int mmdupd(Index ehead, Index neqns, const Index *xadj, Index *adjncy, Index delta,
-           Index &mdeg, Index *dhead, Index *dforw, Index *dbakw, Index *qsize,
-           Index *llist, Index *marker, Index maxint, Index &tag) {
-    /* Local variables */
-    Index i, j, iq2, deg, deg0, node, mtag, link, mdeg0, enode, fnode, nabor,
-    elmnt, istop, jstop, q2head, istrt, jstrt, qxhead;
-    
-    /* Parameter adjustments */
-    --marker;
-    --llist;
-    --qsize;
-    --dbakw;
-    --dforw;
-    --dhead;
-    --adjncy;
-    --xadj;
-    
-    /* Function Body */
-    mdeg0 = mdeg + delta;
-    elmnt = ehead;
-L100:
-    /*            ------------------------------------------------------- */
-    /*            FOR EACH OF THE NEWLY FORMED ELEMENT, DO THE FOLLOWING. */
-    /*            (RESET TAG VALUE IF NECESSARY.) */
-    /*            ------------------------------------------------------- */
-    if (elmnt <= 0) {
-        return 0;
-    }
-    mtag = tag + mdeg0;
-    if (mtag < maxint) {
-        goto L300;
-    }
-    tag = 1;
-    for (i = 1; i <= neqns; ++i) {
-        if (marker[i] < maxint) {
-            marker[i] = 0;
-        }
-    }
-    mtag = tag + mdeg0;
-L300:
-    /*            --------------------------------------------- */
-    /*            CREATE TWO LINKED LISTS FROM NODES ASSOCIATED */
-    /*            WITH ELMNT: ONE WITH TWO NABORS (Q2HEAD) IN */
-    /*            ADJACENCY STRUCTURE, AND THE OTHER WITH MORE */
-    /*            THAN TWO NABORS (QXHEAD).  ALSO COMPUTE DEG0, */
-    /*            NUMBER OF NODES IN THIS ELEMENT. */
-    /*            --------------------------------------------- */
-    q2head = 0;
-    qxhead = 0;
-    deg0 = 0;
-    link = elmnt;
-L400:
-    istrt = xadj[link];
-    istop = xadj[link + 1] - 1;
-    for (i = istrt; i <= istop; ++i) {
-        enode = adjncy[i];
-        link = -enode;
-        if (enode < 0) {
-            goto L400;
-        } else if (enode == 0) {
-            goto L800;
-        } else {
-            goto L500;
-        }
-        
-    L500:
-        if (qsize[enode] == 0) {
-            goto L700;
-        }
-        deg0 += qsize[enode];
-        marker[enode] = mtag;
-        /*                        ---------------------------------- */
-        /*                        IF ENODE REQUIRES A DEGREE UPDATE, */
-        /*                        THEN DO THE FOLLOWING. */
-        /*                        ---------------------------------- */
-        if (dbakw[enode] != 0) {
-            goto L700;
-        }
-        /*                            --------------------------------------- */
-        /*                            PLACE EITHER IN QXHEAD OR Q2HEAD LISTS. */
-        /*                            --------------------------------------- */
-        if (dforw[enode] == 2) {
-            goto L600;
-        }
-        llist[enode] = qxhead;
-        qxhead = enode;
-        goto L700;
-    L600:
-        llist[enode] = q2head;
-        q2head = enode;
-    L700:;
-    }
-L800:
-    /*            -------------------------------------------- */
-    /*            FOR EACH ENODE IN Q2 LIST, DO THE FOLLOWING. */
-    /*            -------------------------------------------- */
-    enode = q2head;
-    iq2 = 1;
-L900:
-    if (enode <= 0) {
-        goto L1500;
-    }
-    if (dbakw[enode] != 0) {
-        goto L2200;
-    }
-    ++(tag);
-    deg = deg0;
-    /*                    ------------------------------------------ */
-    /*                    IDENTIFY THE OTHER ADJACENT ELEMENT NABOR. */
-    /*                    ------------------------------------------ */
-    istrt = xadj[enode];
-    nabor = adjncy[istrt];
-    if (nabor == elmnt) {
-        nabor = adjncy[istrt + 1];
-    }
-    /*                    ------------------------------------------------ */
-    /*                    IF NABOR IS UNELIMINATED, INCREASE DEGREE COUNT. */
-    /*                    ------------------------------------------------ */
-    link = nabor;
-    if (dforw[nabor] < 0) {
-        goto L1000;
-    }
-    deg += qsize[nabor];
-    goto L2100;
-L1000:
-    /*                        -------------------------------------------- */
-    /*                        OTHERWISE, FOR EACH NODE IN THE 2ND ELEMENT, */
-    /*                        DO THE FOLLOWING. */
-    /*                        -------------------------------------------- */
-    istrt = xadj[link];
-    istop = xadj[link + 1] - 1;
-    for (i = istrt; i <= istop; ++i) {
-        node = adjncy[i];
-        link = -node;
-        if (node == enode) {
-            goto L1400;
-        }
-        if (node < 0) {
-            goto L1000;
-        } else if (node == 0) {
-            goto L2100;
-        } else {
-            goto L1100;
-        }
-        
-    L1100:
-        if (qsize[node] == 0) {
-            goto L1400;
-        }
-        if (marker[node] >= tag) {
-            goto L1200;
-        }
-        /*                                ------------------------------------- */
-        /*                                CASE WHEN NODE IS NOT YET CONSIDERED. */
-        /*                                ------------------------------------- */
-        marker[node] = tag;
-        deg += qsize[node];
-        goto L1400;
-    L1200:
-        /*                            ---------------------------------------- */
-        /*                            CASE WHEN NODE IS INDISTINGUISHABLE FROM */
-        /*                            ENODE.  MERGE THEM INTO A NEW SUPERNODE. */
-        /*                            ---------------------------------------- */
-        if (dbakw[node] != 0) {
-            goto L1400;
-        }
-        if (dforw[node] != 2) {
-            goto L1300;
-        }
-        qsize[enode] += qsize[node];
-        qsize[node] = 0;
-        marker[node] = maxint;
-        dforw[node] = -enode;
-        dbakw[node] = -(maxint);
-        goto L1400;
-    L1300:
-        /*                            -------------------------------------- */
-        /*                            CASE WHEN NODE IS OUTMATCHED BY ENODE. */
-        /*                            -------------------------------------- */
-        if (dbakw[node] == 0) {
-            dbakw[node] = -(maxint);
-        }
-    L1400:;
-    }
-    goto L2100;
-L1500:
-    /*                ------------------------------------------------ */
-    /*                FOR EACH ENODE IN THE QX LIST, DO THE FOLLOWING. */
-    /*                ------------------------------------------------ */
-    enode = qxhead;
-    iq2 = 0;
-L1600:
-    if (enode <= 0) {
-        goto L2300;
-    }
-    if (dbakw[enode] != 0) {
-        goto L2200;
-    }
-    ++(tag);
-    deg = deg0;
-    /*                        --------------------------------- */
-    /*                        FOR EACH UNMARKED NABOR OF ENODE, */
-    /*                        DO THE FOLLOWING. */
-    /*                        --------------------------------- */
-    istrt = xadj[enode];
-    istop = xadj[enode + 1] - 1;
-    for (i = istrt; i <= istop; ++i) {
-        nabor = adjncy[i];
-        if (nabor == 0) {
-            goto L2100;
-        }
-        if (marker[nabor] >= tag) {
-            goto L2000;
-        }
-        marker[nabor] = tag;
-        link = nabor;
-        /*                                ------------------------------ */
-        /*                                IF UNELIMINATED, INCLUDE IT IN */
-        /*                                DEG COUNT. */
-        /*                                ------------------------------ */
-        if (dforw[nabor] < 0) {
-            goto L1700;
-        }
-        deg += qsize[nabor];
-        goto L2000;
-    L1700:
-        /*                                    ------------------------------- */
-        /*                                    IF ELIMINATED, INCLUDE UNMARKED */
-        /*                                    NODES IN THIS ELEMENT INTO THE */
-        /*                                    DEGREE COUNT. */
-        /*                                    ------------------------------- */
-        jstrt = xadj[link];
-        jstop = xadj[link + 1] - 1;
-        for (j = jstrt; j <= jstop; ++j) {
-            node = adjncy[j];
-            link = -node;
-            if (node < 0) {
-                goto L1700;
-            } else if (node == 0) {
-                goto L2000;
-            } else {
-                goto L1800;
-            }
-            
-        L1800:
-            if (marker[node] >= tag) {
-                continue;
-            }
-            marker[node] = tag;
-            deg += qsize[node];
-        }
-    L2000:;
-    }
-L2100:
-    /*                    ------------------------------------------- */
-    /*                    UPDATE EXTERNAL DEGREE OF ENODE IN DEGREE */
-    /*                    STRUCTURE, AND MDEG (MIN DEG) IF NECESSARY. */
-    /*                    ------------------------------------------- */
-    deg = deg - qsize[enode] + 1;
-    fnode = dhead[deg];
-    dforw[enode] = fnode;
-    dbakw[enode] = -deg;
-    if (fnode > 0) {
-        dbakw[fnode] = enode;
-    }
-    dhead[deg] = enode;
-    if (deg < mdeg) {
-        mdeg = deg;
-    }
-L2200:
-    /*                    ---------------------------------- */
-    /*                    GET NEXT ENODE IN CURRENT ELEMENT. */
-    /*                    ---------------------------------- */
-    enode = llist[enode];
-    if (iq2 == 1) {
-        goto L900;
-    }
-    goto L1600;
-L2300:
-    /*            ----------------------------- */
-    /*            GET NEXT ELEMENT IN THE LIST. */
-    /*            ----------------------------- */
-    tag = mtag;
-    elmnt = llist[elmnt];
-    goto L100;
-    
-} /* mmdupd */
+            template<typename Index = int64_t>
+            int mmdupd(Index ehead, Index neqns, const Index *xadj, Index *adjncy, Index delta,
+                       Index &mdeg, Index *dhead, Index *dforw, Index *dbakw, Index *qsize,
+                       Index *llist, Index *marker, Index maxint, Index &tag) {
+                /* Local variables */
+                Index i, j, iq2, deg, deg0, node, mtag, link, mdeg0, enode, fnode, nabor,
+                        elmnt, istop, jstop, q2head, istrt, jstrt, qxhead;
+
+                /* Parameter adjustments */
+                --marker;
+                --llist;
+                --qsize;
+                --dbakw;
+                --dforw;
+                --dhead;
+                --adjncy;
+                --xadj;
+
+                /* Function Body */
+                mdeg0 = mdeg + delta;
+                elmnt = ehead;
+                L100:
+                /*            ------------------------------------------------------- */
+                /*            FOR EACH OF THE NEWLY FORMED ELEMENT, DO THE FOLLOWING. */
+                /*            (RESET TAG VALUE IF NECESSARY.) */
+                /*            ------------------------------------------------------- */
+                if (elmnt <= 0) {
+                    return 0;
+                }
+                mtag = tag + mdeg0;
+                if (mtag < maxint) {
+                    goto L300;
+                }
+                tag = 1;
+                for (i = 1; i <= neqns; ++i) {
+                    if (marker[i] < maxint) {
+                        marker[i] = 0;
+                    }
+                }
+                mtag = tag + mdeg0;
+                L300:
+                /*            --------------------------------------------- */
+                /*            CREATE TWO LINKED LISTS FROM NODES ASSOCIATED */
+                /*            WITH ELMNT: ONE WITH TWO NABORS (Q2HEAD) IN */
+                /*            ADJACENCY STRUCTURE, AND THE OTHER WITH MORE */
+                /*            THAN TWO NABORS (QXHEAD).  ALSO COMPUTE DEG0, */
+                /*            NUMBER OF NODES IN THIS ELEMENT. */
+                /*            --------------------------------------------- */
+                q2head = 0;
+                qxhead = 0;
+                deg0 = 0;
+                link = elmnt;
+                L400:
+                istrt = xadj[link];
+                istop = xadj[link + 1] - 1;
+                for (i = istrt; i <= istop; ++i) {
+                    enode = adjncy[i];
+                    link = -enode;
+                    if (enode < 0) {
+                        goto L400;
+                    } else if (enode == 0) {
+                        goto L800;
+                    } else {
+                        goto L500;
+                    }
+
+                    L500:
+                    if (qsize[enode] == 0) {
+                        goto L700;
+                    }
+                    deg0 += qsize[enode];
+                    marker[enode] = mtag;
+                    /*                        ---------------------------------- */
+                    /*                        IF ENODE REQUIRES A DEGREE UPDATE, */
+                    /*                        THEN DO THE FOLLOWING. */
+                    /*                        ---------------------------------- */
+                    if (dbakw[enode] != 0) {
+                        goto L700;
+                    }
+                    /*                            --------------------------------------- */
+                    /*                            PLACE EITHER IN QXHEAD OR Q2HEAD LISTS. */
+                    /*                            --------------------------------------- */
+                    if (dforw[enode] == 2) {
+                        goto L600;
+                    }
+                    llist[enode] = qxhead;
+                    qxhead = enode;
+                    goto L700;
+                    L600:
+                    llist[enode] = q2head;
+                    q2head = enode;
+                    L700:;
+                }
+                L800:
+                /*            -------------------------------------------- */
+                /*            FOR EACH ENODE IN Q2 LIST, DO THE FOLLOWING. */
+                /*            -------------------------------------------- */
+                enode = q2head;
+                iq2 = 1;
+                L900:
+                if (enode <= 0) {
+                    goto L1500;
+                }
+                if (dbakw[enode] != 0) {
+                    goto L2200;
+                }
+                ++(tag);
+                deg = deg0;
+                /*                    ------------------------------------------ */
+                /*                    IDENTIFY THE OTHER ADJACENT ELEMENT NABOR. */
+                /*                    ------------------------------------------ */
+                istrt = xadj[enode];
+                nabor = adjncy[istrt];
+                if (nabor == elmnt) {
+                    nabor = adjncy[istrt + 1];
+                }
+                /*                    ------------------------------------------------ */
+                /*                    IF NABOR IS UNELIMINATED, INCREASE DEGREE COUNT. */
+                /*                    ------------------------------------------------ */
+                link = nabor;
+                if (dforw[nabor] < 0) {
+                    goto L1000;
+                }
+                deg += qsize[nabor];
+                goto L2100;
+                L1000:
+                /*                        -------------------------------------------- */
+                /*                        OTHERWISE, FOR EACH NODE IN THE 2ND ELEMENT, */
+                /*                        DO THE FOLLOWING. */
+                /*                        -------------------------------------------- */
+                istrt = xadj[link];
+                istop = xadj[link + 1] - 1;
+                for (i = istrt; i <= istop; ++i) {
+                    node = adjncy[i];
+                    link = -node;
+                    if (node == enode) {
+                        goto L1400;
+                    }
+                    if (node < 0) {
+                        goto L1000;
+                    } else if (node == 0) {
+                        goto L2100;
+                    } else {
+                        goto L1100;
+                    }
+
+                    L1100:
+                    if (qsize[node] == 0) {
+                        goto L1400;
+                    }
+                    if (marker[node] >= tag) {
+                        goto L1200;
+                    }
+                    /*                                ------------------------------------- */
+                    /*                                CASE WHEN NODE IS NOT YET CONSIDERED. */
+                    /*                                ------------------------------------- */
+                    marker[node] = tag;
+                    deg += qsize[node];
+                    goto L1400;
+                    L1200:
+                    /*                            ---------------------------------------- */
+                    /*                            CASE WHEN NODE IS INDISTINGUISHABLE FROM */
+                    /*                            ENODE.  MERGE THEM INTO A NEW SUPERNODE. */
+                    /*                            ---------------------------------------- */
+                    if (dbakw[node] != 0) {
+                        goto L1400;
+                    }
+                    if (dforw[node] != 2) {
+                        goto L1300;
+                    }
+                    qsize[enode] += qsize[node];
+                    qsize[node] = 0;
+                    marker[node] = maxint;
+                    dforw[node] = -enode;
+                    dbakw[node] = -(maxint);
+                    goto L1400;
+                    L1300:
+                    /*                            -------------------------------------- */
+                    /*                            CASE WHEN NODE IS OUTMATCHED BY ENODE. */
+                    /*                            -------------------------------------- */
+                    if (dbakw[node] == 0) {
+                        dbakw[node] = -(maxint);
+                    }
+                    L1400:;
+                }
+                goto L2100;
+                L1500:
+                /*                ------------------------------------------------ */
+                /*                FOR EACH ENODE IN THE QX LIST, DO THE FOLLOWING. */
+                /*                ------------------------------------------------ */
+                enode = qxhead;
+                iq2 = 0;
+                L1600:
+                if (enode <= 0) {
+                    goto L2300;
+                }
+                if (dbakw[enode] != 0) {
+                    goto L2200;
+                }
+                ++(tag);
+                deg = deg0;
+                /*                        --------------------------------- */
+                /*                        FOR EACH UNMARKED NABOR OF ENODE, */
+                /*                        DO THE FOLLOWING. */
+                /*                        --------------------------------- */
+                istrt = xadj[enode];
+                istop = xadj[enode + 1] - 1;
+                for (i = istrt; i <= istop; ++i) {
+                    nabor = adjncy[i];
+                    if (nabor == 0) {
+                        goto L2100;
+                    }
+                    if (marker[nabor] >= tag) {
+                        goto L2000;
+                    }
+                    marker[nabor] = tag;
+                    link = nabor;
+                    /*                                ------------------------------ */
+                    /*                                IF UNELIMINATED, INCLUDE IT IN */
+                    /*                                DEG COUNT. */
+                    /*                                ------------------------------ */
+                    if (dforw[nabor] < 0) {
+                        goto L1700;
+                    }
+                    deg += qsize[nabor];
+                    goto L2000;
+                    L1700:
+                    /*                                    ------------------------------- */
+                    /*                                    IF ELIMINATED, INCLUDE UNMARKED */
+                    /*                                    NODES IN THIS ELEMENT INTO THE */
+                    /*                                    DEGREE COUNT. */
+                    /*                                    ------------------------------- */
+                    jstrt = xadj[link];
+                    jstop = xadj[link + 1] - 1;
+                    for (j = jstrt; j <= jstop; ++j) {
+                        node = adjncy[j];
+                        link = -node;
+                        if (node < 0) {
+                            goto L1700;
+                        } else if (node == 0) {
+                            goto L2000;
+                        } else {
+                            goto L1800;
+                        }
+
+                        L1800:
+                        if (marker[node] >= tag) {
+                            continue;
+                        }
+                        marker[node] = tag;
+                        deg += qsize[node];
+                    }
+                    L2000:;
+                }
+                L2100:
+                /*                    ------------------------------------------- */
+                /*                    UPDATE EXTERNAL DEGREE OF ENODE IN DEGREE */
+                /*                    STRUCTURE, AND MDEG (MIN DEG) IF NECESSARY. */
+                /*                    ------------------------------------------- */
+                deg = deg - qsize[enode] + 1;
+                fnode = dhead[deg];
+                dforw[enode] = fnode;
+                dbakw[enode] = -deg;
+                if (fnode > 0) {
+                    dbakw[fnode] = enode;
+                }
+                dhead[deg] = enode;
+                if (deg < mdeg) {
+                    mdeg = deg;
+                }
+                L2200:
+                /*                    ---------------------------------- */
+                /*                    GET NEXT ENODE IN CURRENT ELEMENT. */
+                /*                    ---------------------------------- */
+                enode = llist[enode];
+                if (iq2 == 1) {
+                    goto L900;
+                }
+                goto L1600;
+                L2300:
+                /*            ----------------------------- */
+                /*            GET NEXT ELEMENT IN THE LIST. */
+                /*            ----------------------------- */
+                tag = mtag;
+                elmnt = llist[elmnt];
+                goto L100;
+
+            } /* mmdupd */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2185,11 +2176,11 @@ L2300:
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void mmdint(Index neqns, const Index *xadj, Index *dhead, Index *dforw,
-            Index *dbakw, Index *qsize, Index *llist, Index *marker) {
-    /* Local variables */
-    Index ndeg, node, fnode;
+            template<typename Index = int64_t>
+            void mmdint(Index neqns, const Index *xadj, Index *dhead, Index *dforw,
+                        Index *dbakw, Index *qsize, Index *llist, Index *marker) {
+                /* Local variables */
+                Index ndeg, node, fnode;
 
                 /* Parameter adjustments */
                 --marker;
@@ -2221,8 +2212,8 @@ void mmdint(Index neqns, const Index *xadj, Index *dhead, Index *dforw,
                     }
                     dbakw[node] = -ndeg;
                 }
-    
-} /* mmdint */
+
+            } /* mmdint */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2264,204 +2255,204 @@ void mmdint(Index neqns, const Index *xadj, Index *dhead, Index *dforw,
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-int mmdelm(Index mdnode, const Index *xadj, Index *adjncy, Index *dhead,
-           Index *dforw, Index *dbakw, Index *qsize, Index *llist,
-           Index *marker, Index maxint, Index tag) {
-    /* Local variables */
-    Index i, j, npv, node, link, rloc, rlmt, nabor, rnode, elmnt, xqnbr, istop,
-    jstop, istrt, jstrt, nxnode, pvnode, nqnbrs;
-    
-    /*        ----------------------------------------------- */
-    /*        FIND REACHABLE SET AND PLACE IN DATA STRUCTURE. */
-    /*        ----------------------------------------------- */
-    /* Parameter adjustments */
-    --marker;
-    --llist;
-    --qsize;
-    --dbakw;
-    --dforw;
-    --dhead;
-    --adjncy;
-    --xadj;
-    
-    /* Function Body */
-    marker[mdnode] = tag;
-    istrt = xadj[mdnode];
-    istop = xadj[mdnode + 1] - 1;
-    /*        ------------------------------------------------------- */
-    /*        ELMNT POINTS TO THE BEGINNING OF THE LIST OF ELIMINATED */
-    /*        NABORS OF MDNODE, AND RLOC GIVES THE STORAGE LOCATION */
-    /*        FOR THE NEXT REACHABLE NODE. */
-    /*        ------------------------------------------------------- */
-    elmnt = 0;
-    rloc = istrt;
-    rlmt = istop;
-    for (i = istrt; i <= istop; ++i) {
-        nabor = adjncy[i];
-        if (nabor == 0) {
-            goto L300;
-        }
-        if (marker[nabor] >= tag) {
-            goto L200;
-        }
-        marker[nabor] = tag;
-        if (dforw[nabor] < 0) {
-            goto L100;
-        }
-        adjncy[rloc] = nabor;
-        ++rloc;
-        goto L200;
-    L100:
-        llist[nabor] = elmnt;
-        elmnt = nabor;
-    L200:;
-    }
-L300:
-    /*            ----------------------------------------------------- */
-    /*            MERGE WITH REACHABLE NODES FROM GENERALIZED ELEMENTS. */
-    /*            ----------------------------------------------------- */
-    if (elmnt <= 0) {
-        goto L1000;
-    }
-    adjncy[rlmt] = -elmnt;
-    link = elmnt;
-L400:
-    jstrt = xadj[link];
-    jstop = xadj[link + 1] - 1;
-    for (j = jstrt; j <= jstop; ++j) {
-        node = adjncy[j];
-        link = -node;
-        if (node < 0) {
-            goto L400;
-        } else if (node == 0) {
-            goto L900;
-        } else {
-            goto L500;
-        }
-    L500:
-        if (marker[node] >= tag || dforw[node] < 0) {
-            goto L800;
-        }
-        marker[node] = tag;
-        /*                            --------------------------------- */
-        /*                            USE STORAGE FROM ELIMINATED NODES */
-        /*                            IF NECESSARY. */
-        /*                            --------------------------------- */
-    L600:
-        if (rloc < rlmt) {
-            goto L700;
-        }
-        link = -adjncy[rlmt];
-        rloc = xadj[link];
-        rlmt = xadj[link + 1] - 1;
-        goto L600;
-    L700:
-        adjncy[rloc] = node;
-        ++rloc;
-    L800:;
-    }
-L900:
-    elmnt = llist[elmnt];
-    goto L300;
-L1000:
-    if (rloc <= rlmt) {
-        adjncy[rloc] = 0;
-    }
-    /*        -------------------------------------------------------- */
-    /*        FOR EACH NODE IN THE REACHABLE SET, DO THE FOLLOWING ... */
-    /*        -------------------------------------------------------- */
-    link = mdnode;
-L1100:
-    istrt = xadj[link];
-    istop = xadj[link + 1] - 1;
-    for (i = istrt; i <= istop; ++i) {
-        rnode = adjncy[i];
-        link = -rnode;
-        if (rnode < 0) {
-            goto L1100;
-        } else if (rnode == 0) {
-            goto L1800;
-        } else {
-            goto L1200;
-        }
-    L1200:
-        /*                -------------------------------------------- */
-        /*                IF RNODE IS IN THE DEGREE LIST STRUCTURE ... */
-        /*                -------------------------------------------- */
-        pvnode = dbakw[rnode];
-        if (pvnode == 0 || pvnode == -(maxint)) {
-            goto L1300;
-        }
-        /*                    ------------------------------------- */
-        /*                    THEN REMOVE RNODE FROM THE STRUCTURE. */
-        /*                    ------------------------------------- */
-        nxnode = dforw[rnode];
-        if (nxnode > 0) {
-            dbakw[nxnode] = pvnode;
-        }
-        if (pvnode > 0) {
-            dforw[pvnode] = nxnode;
-        }
-        npv = -pvnode;
-        if (pvnode < 0) {
-            dhead[npv] = nxnode;
-        }
-    L1300:
-        /*                ---------------------------------------- */
-        /*                PURGE INACTIVE QUOTIENT NABORS OF RNODE. */
-        /*                ---------------------------------------- */
-        jstrt = xadj[rnode];
-        jstop = xadj[rnode + 1] - 1;
-        xqnbr = jstrt;
-        for (j = jstrt; j <= jstop; ++j) {
-            nabor = adjncy[j];
-            if (nabor == 0) {
-                goto L1500;
-            }
-            if (marker[nabor] >= tag) {
-                goto L1400;
-            }
-            adjncy[xqnbr] = nabor;
-            ++xqnbr;
-        L1400:;
-        }
-    L1500:
-        /*                ---------------------------------------- */
-        /*                IF NO ACTIVE NABOR AFTER THE PURGING ... */
-        /*                ---------------------------------------- */
-        nqnbrs = xqnbr - jstrt;
-        if (nqnbrs > 0) {
-            goto L1600;
-        }
-        /*                    ----------------------------- */
-        /*                    THEN MERGE RNODE WITH MDNODE. */
-        /*                    ----------------------------- */
-        qsize[mdnode] += qsize[rnode];
-        qsize[rnode] = 0;
-        marker[rnode] = maxint;
-        dforw[rnode] = -(mdnode);
-        dbakw[rnode] = -(maxint);
-        goto L1700;
-    L1600:
-        /*                -------------------------------------- */
-        /*                ELSE FLAG RNODE FOR DEGREE UPDATE, AND */
-        /*                ADD MDNODE AS A NABOR OF RNODE. */
-        /*                -------------------------------------- */
-        dforw[rnode] = nqnbrs + 1;
-        dbakw[rnode] = 0;
-        adjncy[xqnbr] = mdnode;
-        ++xqnbr;
-        if (xqnbr <= jstop) {
-            adjncy[xqnbr] = 0;
-        }
-        
-    L1700:;
-    }
-L1800:
-    return 0;
-    
-} /* mmdelm */
+            template<typename Index = int64_t>
+            int mmdelm(Index mdnode, const Index *xadj, Index *adjncy, Index *dhead,
+                       Index *dforw, Index *dbakw, Index *qsize, Index *llist,
+                       Index *marker, Index maxint, Index tag) {
+                /* Local variables */
+                Index i, j, npv, node, link, rloc, rlmt, nabor, rnode, elmnt, xqnbr, istop,
+                        jstop, istrt, jstrt, nxnode, pvnode, nqnbrs;
+
+                /*        ----------------------------------------------- */
+                /*        FIND REACHABLE SET AND PLACE IN DATA STRUCTURE. */
+                /*        ----------------------------------------------- */
+                /* Parameter adjustments */
+                --marker;
+                --llist;
+                --qsize;
+                --dbakw;
+                --dforw;
+                --dhead;
+                --adjncy;
+                --xadj;
+
+                /* Function Body */
+                marker[mdnode] = tag;
+                istrt = xadj[mdnode];
+                istop = xadj[mdnode + 1] - 1;
+                /*        ------------------------------------------------------- */
+                /*        ELMNT POINTS TO THE BEGINNING OF THE LIST OF ELIMINATED */
+                /*        NABORS OF MDNODE, AND RLOC GIVES THE STORAGE LOCATION */
+                /*        FOR THE NEXT REACHABLE NODE. */
+                /*        ------------------------------------------------------- */
+                elmnt = 0;
+                rloc = istrt;
+                rlmt = istop;
+                for (i = istrt; i <= istop; ++i) {
+                    nabor = adjncy[i];
+                    if (nabor == 0) {
+                        goto L300;
+                    }
+                    if (marker[nabor] >= tag) {
+                        goto L200;
+                    }
+                    marker[nabor] = tag;
+                    if (dforw[nabor] < 0) {
+                        goto L100;
+                    }
+                    adjncy[rloc] = nabor;
+                    ++rloc;
+                    goto L200;
+                    L100:
+                    llist[nabor] = elmnt;
+                    elmnt = nabor;
+                    L200:;
+                }
+                L300:
+                /*            ----------------------------------------------------- */
+                /*            MERGE WITH REACHABLE NODES FROM GENERALIZED ELEMENTS. */
+                /*            ----------------------------------------------------- */
+                if (elmnt <= 0) {
+                    goto L1000;
+                }
+                adjncy[rlmt] = -elmnt;
+                link = elmnt;
+                L400:
+                jstrt = xadj[link];
+                jstop = xadj[link + 1] - 1;
+                for (j = jstrt; j <= jstop; ++j) {
+                    node = adjncy[j];
+                    link = -node;
+                    if (node < 0) {
+                        goto L400;
+                    } else if (node == 0) {
+                        goto L900;
+                    } else {
+                        goto L500;
+                    }
+                    L500:
+                    if (marker[node] >= tag || dforw[node] < 0) {
+                        goto L800;
+                    }
+                    marker[node] = tag;
+                    /*                            --------------------------------- */
+                    /*                            USE STORAGE FROM ELIMINATED NODES */
+                    /*                            IF NECESSARY. */
+                    /*                            --------------------------------- */
+                    L600:
+                    if (rloc < rlmt) {
+                        goto L700;
+                    }
+                    link = -adjncy[rlmt];
+                    rloc = xadj[link];
+                    rlmt = xadj[link + 1] - 1;
+                    goto L600;
+                    L700:
+                    adjncy[rloc] = node;
+                    ++rloc;
+                    L800:;
+                }
+                L900:
+                elmnt = llist[elmnt];
+                goto L300;
+                L1000:
+                if (rloc <= rlmt) {
+                    adjncy[rloc] = 0;
+                }
+                /*        -------------------------------------------------------- */
+                /*        FOR EACH NODE IN THE REACHABLE SET, DO THE FOLLOWING ... */
+                /*        -------------------------------------------------------- */
+                link = mdnode;
+                L1100:
+                istrt = xadj[link];
+                istop = xadj[link + 1] - 1;
+                for (i = istrt; i <= istop; ++i) {
+                    rnode = adjncy[i];
+                    link = -rnode;
+                    if (rnode < 0) {
+                        goto L1100;
+                    } else if (rnode == 0) {
+                        goto L1800;
+                    } else {
+                        goto L1200;
+                    }
+                    L1200:
+                    /*                -------------------------------------------- */
+                    /*                IF RNODE IS IN THE DEGREE LIST STRUCTURE ... */
+                    /*                -------------------------------------------- */
+                    pvnode = dbakw[rnode];
+                    if (pvnode == 0 || pvnode == -(maxint)) {
+                        goto L1300;
+                    }
+                    /*                    ------------------------------------- */
+                    /*                    THEN REMOVE RNODE FROM THE STRUCTURE. */
+                    /*                    ------------------------------------- */
+                    nxnode = dforw[rnode];
+                    if (nxnode > 0) {
+                        dbakw[nxnode] = pvnode;
+                    }
+                    if (pvnode > 0) {
+                        dforw[pvnode] = nxnode;
+                    }
+                    npv = -pvnode;
+                    if (pvnode < 0) {
+                        dhead[npv] = nxnode;
+                    }
+                    L1300:
+                    /*                ---------------------------------------- */
+                    /*                PURGE INACTIVE QUOTIENT NABORS OF RNODE. */
+                    /*                ---------------------------------------- */
+                    jstrt = xadj[rnode];
+                    jstop = xadj[rnode + 1] - 1;
+                    xqnbr = jstrt;
+                    for (j = jstrt; j <= jstop; ++j) {
+                        nabor = adjncy[j];
+                        if (nabor == 0) {
+                            goto L1500;
+                        }
+                        if (marker[nabor] >= tag) {
+                            goto L1400;
+                        }
+                        adjncy[xqnbr] = nabor;
+                        ++xqnbr;
+                        L1400:;
+                    }
+                    L1500:
+                    /*                ---------------------------------------- */
+                    /*                IF NO ACTIVE NABOR AFTER THE PURGING ... */
+                    /*                ---------------------------------------- */
+                    nqnbrs = xqnbr - jstrt;
+                    if (nqnbrs > 0) {
+                        goto L1600;
+                    }
+                    /*                    ----------------------------- */
+                    /*                    THEN MERGE RNODE WITH MDNODE. */
+                    /*                    ----------------------------- */
+                    qsize[mdnode] += qsize[rnode];
+                    qsize[rnode] = 0;
+                    marker[rnode] = maxint;
+                    dforw[rnode] = -(mdnode);
+                    dbakw[rnode] = -(maxint);
+                    goto L1700;
+                    L1600:
+                    /*                -------------------------------------- */
+                    /*                ELSE FLAG RNODE FOR DEGREE UPDATE, AND */
+                    /*                ADD MDNODE AS A NABOR OF RNODE. */
+                    /*                -------------------------------------- */
+                    dforw[rnode] = nqnbrs + 1;
+                    dbakw[rnode] = 0;
+                    adjncy[xqnbr] = mdnode;
+                    ++xqnbr;
+                    if (xqnbr <= jstop) {
+                        adjncy[xqnbr] = 0;
+                    }
+
+                    L1700:;
+                }
+                L1800:
+                return 0;
+
+            } /* mmdelm */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2502,77 +2493,77 @@ L1800:
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void mmdnum(Index neqns, Index *perm, Index *invp, Index *qsize) {
-    /* Local variables */
-    Index num, node, root, nextf, father, nqsize;
-    
-    /* Parameter adjustments */
-    --qsize;
-    --invp;
-    --perm;
-    
-    /* Function Body */
-    for (node = 1; node <= neqns; ++node) {
-        nqsize = qsize[node];
-        if (nqsize <= 0) {
-            perm[node] = invp[node];
-        }
-        if (nqsize > 0) {
-            perm[node] = -invp[node];
-        }
-        /* L100: */
-    }
-    /*        ------------------------------------------------------ */
-    /*        FOR EACH NODE WHICH HAS BEEN MERGED, DO THE FOLLOWING. */
-    /*        ------------------------------------------------------ */
-    for (node = 1; node <= neqns; ++node) {
-        if (perm[node] > 0) {
-            goto L500;
-        }
-        /*                ----------------------------------------- */
-        /*                TRACE THE MERGED TREE UNTIL ONE WHICH HAS */
-        /*                NOT BEEN MERGED, CALL IT ROOT. */
-        /*                ----------------------------------------- */
-        father = node;
-    L200:
-        if (perm[father] > 0) {
-            goto L300;
-        }
-        father = -perm[father];
-        goto L200;
-    L300:
-        /*                ----------------------- */
-        /*                NUMBER NODE AFTER ROOT. */
-        /*                ----------------------- */
-        root = father;
-        num = perm[root] + 1;
-        invp[node] = -num;
-        perm[root] = num;
-        /*                ------------------------ */
-        /*                SHORTEN THE MERGED TREE. */
-        /*                ------------------------ */
-        father = node;
-    L400:
-        nextf = -perm[father];
-        if (nextf <= 0) {
-            goto L500;
-        }
-        perm[father] = -root;
-        father = nextf;
-        goto L400;
-    L500:;
-    }
-    /*        ---------------------- */
-    /*        READY TO COMPUTE PERM. */
-    /*        ---------------------- */
-    for (node = 1; node <= neqns; ++node) {
-        num = -invp[node];
-        invp[node] = num;
-        perm[num] = node;
-    }
-    
-} /* mmdnum */
+            template<typename Index = int64_t>
+            void mmdnum(Index neqns, Index *perm, Index *invp, Index *qsize) {
+                /* Local variables */
+                Index num, node, root, nextf, father, nqsize;
+
+                /* Parameter adjustments */
+                --qsize;
+                --invp;
+                --perm;
+
+                /* Function Body */
+                for (node = 1; node <= neqns; ++node) {
+                    nqsize = qsize[node];
+                    if (nqsize <= 0) {
+                        perm[node] = invp[node];
+                    }
+                    if (nqsize > 0) {
+                        perm[node] = -invp[node];
+                    }
+                    /* L100: */
+                }
+                /*        ------------------------------------------------------ */
+                /*        FOR EACH NODE WHICH HAS BEEN MERGED, DO THE FOLLOWING. */
+                /*        ------------------------------------------------------ */
+                for (node = 1; node <= neqns; ++node) {
+                    if (perm[node] > 0) {
+                        goto L500;
+                    }
+                    /*                ----------------------------------------- */
+                    /*                TRACE THE MERGED TREE UNTIL ONE WHICH HAS */
+                    /*                NOT BEEN MERGED, CALL IT ROOT. */
+                    /*                ----------------------------------------- */
+                    father = node;
+                    L200:
+                    if (perm[father] > 0) {
+                        goto L300;
+                    }
+                    father = -perm[father];
+                    goto L200;
+                    L300:
+                    /*                ----------------------- */
+                    /*                NUMBER NODE AFTER ROOT. */
+                    /*                ----------------------- */
+                    root = father;
+                    num = perm[root] + 1;
+                    invp[node] = -num;
+                    perm[root] = num;
+                    /*                ------------------------ */
+                    /*                SHORTEN THE MERGED TREE. */
+                    /*                ------------------------ */
+                    father = node;
+                    L400:
+                    nextf = -perm[father];
+                    if (nextf <= 0) {
+                        goto L500;
+                    }
+                    perm[father] = -root;
+                    father = nextf;
+                    goto L400;
+                    L500:;
+                }
+                /*        ---------------------- */
+                /*        READY TO COMPUTE PERM. */
+                /*        ---------------------- */
+                for (node = 1; node <= neqns; ++node) {
+                    num = -invp[node];
+                    invp[node] = num;
+                    perm[num] = node;
+                }
+
+            } /* mmdnum */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2637,168 +2628,168 @@ void mmdnum(Index neqns, Index *perm, Index *invp, Index *qsize) {
 
 /* *********************************************************************** */
 
-template<typename Index>
-void genmmd(Index neqns, const Index *xadj, Index *adjncy, Index *invp, Index *perm,
-            Index delta, Index *dhead, Index *qsize, Index *llist,
-            Index *marker, Index maxint, Index &nnzl, Index &nofsub,
-            Index *colcnt, Index &nsuper, Index *xsuper, Index *snode) {
-    /* Local variables */
-    Index i, cc, tag, num, mdeg, kcol, ehead, mdlmt, mdnode;
-    Index fstcol;
-    Index nextmd, lstcol, ksuper;
-    
-    if (neqns <= 0) {
-        return;
-    }
-    
-    /*        ------------------------------------------------ */
-    /*        INITIALIZATION FOR THE MINIMUM DEGREE ALGORITHM. */
-    /*        ------------------------------------------------ */
-    nsuper = 0;
-    mmdint(neqns, xadj, dhead, invp, perm, qsize, llist, marker);
-    
-    /* Parameter adjustments */
-    --snode;
-    --xsuper;
-    --colcnt;
-    --marker;
-    --llist;
-    --qsize;
-    --dhead;
-    --perm;
-    --invp;
-    --adjncy;
-    --xadj;
-    
-    /*        ---------------------------------------------- */
-    /*        NUM COUNTS THE NUMBER OF ORDERED NODES PLUS 1. */
-    /*        ---------------------------------------------- */
-    num = 1;
-    
-    /*        ----------------------------- */
-    /*        ELIMINATE ALL ISOLATED NODES. */
-    /*        ----------------------------- */
-    nextmd = dhead[1];
-L100:
-    if (nextmd <= 0) {
-        goto L200;
-    }
-    mdnode = nextmd;
-    nextmd = invp[mdnode];
-    marker[mdnode] = maxint;
-    invp[mdnode] = -num;
-    ++(nsuper);
-    xsuper[nsuper] = num;
-    colcnt[num] = 1;
-    ++num;
-    goto L100;
-    
-L200:
-    /*        ---------------------------------------- */
-    /*        SEARCH FOR NODE OF THE MINIMUM DEGREE. */
-    /*        MDEG IS THE CURRENT MINIMUM DEGREE; */
-    /*        TAG IS USED TO FACILITATE MARKING NODES. */
-    /*        ---------------------------------------- */
-    if (num > neqns) {
-        goto L1000;
-    }
-    tag = 1;
-    dhead[1] = 0;
-    mdeg = 2;
-L300:
-    if (dhead[mdeg] > 0) {
-        goto L400;
-    }
-    ++mdeg;
-    goto L300;
-L400:
-    /*            ------------------------------------------------- */
-    /*            USE VALUE OF DELTA TO SET UP MDLMT, WHICH GOVERNS */
-    /*            WHEN A DEGREE UPDATE IS TO BE PERFORMED. */
-    /*            ------------------------------------------------- */
-    mdlmt = mdeg + delta;
-    ehead = 0;
-    
-L500:
-    mdnode = dhead[mdeg];
-    if (mdnode > 0) {
-        goto L600;
-    }
-    ++mdeg;
-    if (mdeg > mdlmt) {
-        goto L900;
-    }
-    goto L500;
-L600:
-    /*                ---------------------------------------- */
-    /*                REMOVE MDNODE FROM THE DEGREE STRUCTURE. */
-    /*                ---------------------------------------- */
-    nextmd = invp[mdnode];
-    dhead[mdeg] = nextmd;
-    if (nextmd > 0) {
-        perm[nextmd] = -mdeg;
-    }
-    ++(nsuper);
-    xsuper[nsuper] = num;
-    colcnt[num] = mdeg + qsize[mdnode] - 1;
-    invp[mdnode] = -num;
-    if (num + qsize[mdnode] > neqns) {
-        goto L1000;
-    }
-    /*                ---------------------------------------------- */
-    /*                ELIMINATE MDNODE AND PERFORM QUOTIENT GRAPH */
-    /*                TRANSFORMATION.  RESET TAG VALUE IF NECESSARY. */
-    /*                ---------------------------------------------- */
-    ++tag;
-    if (tag < maxint) {
-        goto L800;
-    }
-    tag = 1;
-    for (i = 1; i <= neqns; ++i) {
-        if (marker[i] < maxint) {
-            marker[i] = 0;
-        }
-    }
-L800:
-    mmdelm(mdnode, &xadj[1], &adjncy[1], &dhead[1], &invp[1], &perm[1],
-           &qsize[1], &llist[1], &marker[1], maxint, tag);
-    num += qsize[mdnode];
-    llist[mdnode] = ehead;
-    ehead = mdnode;
-    if (delta >= 0) {
-        goto L500;
-    }
-L900:
-    /*            ------------------------------------------- */
-    /*            UPDATE DEGREES OF THE NODES INVOLVED IN THE */
-    /*            MINIMUM DEGREE NODES ELIMINATION. */
-    /*            ------------------------------------------- */
-    if (num > neqns) {
-        goto L1000;
-    }
-    mmdupd(ehead, neqns, &xadj[1], &adjncy[1], delta, mdeg, &dhead[1], &invp[1],
-           &perm[1], &qsize[1], &llist[1], &marker[1], maxint, tag);
-    goto L300;
-    
-L1000:
-    xsuper[nsuper + 1] = neqns + 1;
-    nnzl = 0;
-    nofsub = 0;
-    for (ksuper = 1; ksuper <= nsuper; ++ksuper) {
-        fstcol = xsuper[ksuper];
-        lstcol = xsuper[ksuper + 1] - 1;
-        cc = colcnt[fstcol];
-        nofsub += cc;
-        for (kcol = fstcol; kcol <= lstcol; ++kcol) {
-            snode[kcol] = ksuper;
-            colcnt[kcol] = cc;
-            nnzl += cc;
-            --cc;
-        }
-    }
-    mmdnum(neqns, &perm[1], &invp[1], &qsize[1]);
-    
-} /* genmmd */
+            template<typename Index>
+            void genmmd(Index neqns, const Index *xadj, Index *adjncy, Index *invp, Index *perm,
+                        Index delta, Index *dhead, Index *qsize, Index *llist,
+                        Index *marker, Index maxint, Index &nnzl, Index &nofsub,
+                        Index *colcnt, Index &nsuper, Index *xsuper, Index *snode) {
+                /* Local variables */
+                Index i, cc, tag, num, mdeg, kcol, ehead, mdlmt, mdnode;
+                Index fstcol;
+                Index nextmd, lstcol, ksuper;
+
+                if (neqns <= 0) {
+                    return;
+                }
+
+                /*        ------------------------------------------------ */
+                /*        INITIALIZATION FOR THE MINIMUM DEGREE ALGORITHM. */
+                /*        ------------------------------------------------ */
+                nsuper = 0;
+                mmdint(neqns, xadj, dhead, invp, perm, qsize, llist, marker);
+
+                /* Parameter adjustments */
+                --snode;
+                --xsuper;
+                --colcnt;
+                --marker;
+                --llist;
+                --qsize;
+                --dhead;
+                --perm;
+                --invp;
+                --adjncy;
+                --xadj;
+
+                /*        ---------------------------------------------- */
+                /*        NUM COUNTS THE NUMBER OF ORDERED NODES PLUS 1. */
+                /*        ---------------------------------------------- */
+                num = 1;
+
+                /*        ----------------------------- */
+                /*        ELIMINATE ALL ISOLATED NODES. */
+                /*        ----------------------------- */
+                nextmd = dhead[1];
+                L100:
+                if (nextmd <= 0) {
+                    goto L200;
+                }
+                mdnode = nextmd;
+                nextmd = invp[mdnode];
+                marker[mdnode] = maxint;
+                invp[mdnode] = -num;
+                ++(nsuper);
+                xsuper[nsuper] = num;
+                colcnt[num] = 1;
+                ++num;
+                goto L100;
+
+                L200:
+                /*        ---------------------------------------- */
+                /*        SEARCH FOR NODE OF THE MINIMUM DEGREE. */
+                /*        MDEG IS THE CURRENT MINIMUM DEGREE; */
+                /*        TAG IS USED TO FACILITATE MARKING NODES. */
+                /*        ---------------------------------------- */
+                if (num > neqns) {
+                    goto L1000;
+                }
+                tag = 1;
+                dhead[1] = 0;
+                mdeg = 2;
+                L300:
+                if (dhead[mdeg] > 0) {
+                    goto L400;
+                }
+                ++mdeg;
+                goto L300;
+                L400:
+                /*            ------------------------------------------------- */
+                /*            USE VALUE OF DELTA TO SET UP MDLMT, WHICH GOVERNS */
+                /*            WHEN A DEGREE UPDATE IS TO BE PERFORMED. */
+                /*            ------------------------------------------------- */
+                mdlmt = mdeg + delta;
+                ehead = 0;
+
+                L500:
+                mdnode = dhead[mdeg];
+                if (mdnode > 0) {
+                    goto L600;
+                }
+                ++mdeg;
+                if (mdeg > mdlmt) {
+                    goto L900;
+                }
+                goto L500;
+                L600:
+                /*                ---------------------------------------- */
+                /*                REMOVE MDNODE FROM THE DEGREE STRUCTURE. */
+                /*                ---------------------------------------- */
+                nextmd = invp[mdnode];
+                dhead[mdeg] = nextmd;
+                if (nextmd > 0) {
+                    perm[nextmd] = -mdeg;
+                }
+                ++(nsuper);
+                xsuper[nsuper] = num;
+                colcnt[num] = mdeg + qsize[mdnode] - 1;
+                invp[mdnode] = -num;
+                if (num + qsize[mdnode] > neqns) {
+                    goto L1000;
+                }
+                /*                ---------------------------------------------- */
+                /*                ELIMINATE MDNODE AND PERFORM QUOTIENT GRAPH */
+                /*                TRANSFORMATION.  RESET TAG VALUE IF NECESSARY. */
+                /*                ---------------------------------------------- */
+                ++tag;
+                if (tag < maxint) {
+                    goto L800;
+                }
+                tag = 1;
+                for (i = 1; i <= neqns; ++i) {
+                    if (marker[i] < maxint) {
+                        marker[i] = 0;
+                    }
+                }
+                L800:
+                mmdelm(mdnode, &xadj[1], &adjncy[1], &dhead[1], &invp[1], &perm[1],
+                       &qsize[1], &llist[1], &marker[1], maxint, tag);
+                num += qsize[mdnode];
+                llist[mdnode] = ehead;
+                ehead = mdnode;
+                if (delta >= 0) {
+                    goto L500;
+                }
+                L900:
+                /*            ------------------------------------------- */
+                /*            UPDATE DEGREES OF THE NODES INVOLVED IN THE */
+                /*            MINIMUM DEGREE NODES ELIMINATION. */
+                /*            ------------------------------------------- */
+                if (num > neqns) {
+                    goto L1000;
+                }
+                mmdupd(ehead, neqns, &xadj[1], &adjncy[1], delta, mdeg, &dhead[1], &invp[1],
+                       &perm[1], &qsize[1], &llist[1], &marker[1], maxint, tag);
+                goto L300;
+
+                L1000:
+                xsuper[nsuper + 1] = neqns + 1;
+                nnzl = 0;
+                nofsub = 0;
+                for (ksuper = 1; ksuper <= nsuper; ++ksuper) {
+                    fstcol = xsuper[ksuper];
+                    lstcol = xsuper[ksuper + 1] - 1;
+                    cc = colcnt[fstcol];
+                    nofsub += cc;
+                    for (kcol = fstcol; kcol <= lstcol; ++kcol) {
+                        snode[kcol] = ksuper;
+                        colcnt[kcol] = cc;
+                        nnzl += cc;
+                        --cc;
+                    }
+                }
+                mmdnum(neqns, &perm[1], &invp[1], &qsize[1]);
+
+            } /* genmmd */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2847,35 +2838,35 @@ L1000:
 
 /* *********************************************************************** */
 
-template<typename Index>
-void ordmmd(Index neqns, const Index *xadj, Index *adjncy, Index *invp,
-            Index *perm, Index iwsiz, Index *iwork, Index &nnzl, Index &nofsub,
-            Index *colcnt, Index &nsuper, Index *xsuper, Index *snode,
-            bool &sfiflg, Index &iflag) {
-    /* Local variables */
-    Index delta, maxint;
-    
-    iflag = 0;
-    if (iwsiz < neqns << 2) {
-        iflag = -1;
-        std::cerr << "\n";
-        std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
-        std::cerr << "*** IS SMALLER THAN REQUIRED = " << neqns << "\n";
-        std::cerr << "\n";
-        return;
-    }
-    
-    /*       DELTA  - TOLERANCE VALUE FOR MULTIPLE ELIMINATION. */
-    /*       MAXINT - MAXIMUM MACHINE REPRESENTABLE (SHORT) INTEGER */
-    /*                (ANY SMALLER ESTIMATE WILL DO) FOR MARKING */
-    /*                NODES. */
-    delta = 0;
-    maxint = 32767;
-    genmmd(neqns, xadj, adjncy, invp, perm, delta, iwork,
-           &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3],
-           maxint, nnzl, nofsub, colcnt, nsuper, xsuper, snode);
-    sfiflg = false;
-} /* ordmmd */
+            template<typename Index>
+            void ordmmd(Index neqns, const Index *xadj, Index *adjncy, Index *invp,
+                        Index *perm, Index iwsiz, Index *iwork, Index &nnzl, Index &nofsub,
+                        Index *colcnt, Index &nsuper, Index *xsuper, Index *snode,
+                        bool &sfiflg, Index &iflag) {
+                /* Local variables */
+                Index delta, maxint;
+
+                iflag = 0;
+                if (iwsiz < neqns << 2) {
+                    iflag = -1;
+                    std::cerr << "\n";
+                    std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
+                    std::cerr << "*** IS SMALLER THAN REQUIRED = " << neqns << "\n";
+                    std::cerr << "\n";
+                    return;
+                }
+
+                /*       DELTA  - TOLERANCE VALUE FOR MULTIPLE ELIMINATION. */
+                /*       MAXINT - MAXIMUM MACHINE REPRESENTABLE (SHORT) INTEGER */
+                /*                (ANY SMALLER ESTIMATE WILL DO) FOR MARKING */
+                /*                NODES. */
+                delta = 0;
+                maxint = 32767;
+                genmmd(neqns, xadj, adjncy, invp, perm, delta, iwork,
+                       &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3],
+                       maxint, nnzl, nofsub, colcnt, nsuper, xsuper, snode);
+                sfiflg = false;
+            } /* ordmmd */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2912,22 +2903,22 @@ void ordmmd(Index neqns, const Index *xadj, Index *adjncy, Index *invp,
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void bfinit(Index neqns, Index nsuper, Index *xsuper, Index *snode,
-            Index *xlindx, Index *lindx, Index cachsz, Index &tmpsiz,
-            Index *split) {
-    
-    /*       --------------------------------------------------- */
-    /*       DETERMINE FLOATING POINT WORKING SPACE REQUIREMENT. */
-    /*       --------------------------------------------------- */
-    fntsiz(nsuper, xsuper, snode, xlindx, lindx, tmpsiz);
-    
-    /*       ------------------------------- */
-    /*       PARTITION SUPERNODES FOR CACHE. */
-    /*       ------------------------------- */
-    fnsplt(neqns, nsuper, xsuper, xlindx, cachsz, split);
-    
-} /* bfinit */
+            template<typename Index = int64_t>
+            void bfinit(Index neqns, Index nsuper, Index *xsuper, Index *snode,
+                        Index *xlindx, Index *lindx, Index cachsz, Index &tmpsiz,
+                        Index *split) {
+
+                /*       --------------------------------------------------- */
+                /*       DETERMINE FLOATING POINT WORKING SPACE REQUIREMENT. */
+                /*       --------------------------------------------------- */
+                fntsiz(nsuper, xsuper, snode, xlindx, lindx, tmpsiz);
+
+                /*       ------------------------------- */
+                /*       PARTITION SUPERNODES FOR CACHE. */
+                /*       ------------------------------- */
+                fnsplt(neqns, nsuper, xsuper, xlindx, cachsz, split);
+
+            } /* bfinit */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -2994,216 +2985,216 @@ void bfinit(Index neqns, Index nsuper, Index *xsuper, Index *snode,
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-int symfc2(Index neqns, Index adjlen, Index *xadj, Index *adjncy, Index *perm,
-           Index *invp, Index *colcnt, Index nsuper, Index *xsuper,
-           Index *snode, Index nofsub, Index *xlindx, Index *lindx,
-           Index *xlnz, Index *mrglnk, Index *rchlnk, Index *marker,
-           Index &flag) {
-    /* Local variables */
-    Index i, knz, head, node, tail, pcol, newi, jptr, kptr, jsup, ksup, psup,
-    nzbeg, nzend, width, nexti, point, jnzbeg, knzbeg, length, jnzend, jwidth,
-    fstcol, knzend, lstcol;
-    
-    /* Parameter adjustments */
-    --marker;
-    --xlnz;
-    --snode;
-    --colcnt;
-    --invp;
-    --perm;
-    --xadj;
-    --adjncy;
-    --mrglnk;
-    --xlindx;
-    --xsuper;
-    --lindx;
-    
-    /* Function Body */
-    flag = 0;
-    if (neqns <= 0) {
-        return 0;
-    }
-    
-    /*       --------------------------------------------------- */
-    /*       INITIALIZATIONS ... */
-    /*           NZEND  : POINTS TO THE LAST USED SLOT IN LINDX. */
-    /*           TAIL   : END OF LIST INDICATOR */
-    /*                    (IN RCHLNK(*), NOT MRGLNK(*)). */
-    /*           MRGLNK : CREATE EMPTY LISTS. */
-    /*           MARKER : "UNMARK" THE INDICES. */
-    /*       --------------------------------------------------- */
-    nzend = 0;
-    head = 0;
-    tail = neqns + 1;
-    point = 1;
-    for (i = 1; i <= neqns; ++i) {
-        marker[i] = 0;
-        xlnz[i] = point;
-        point += colcnt[i];
-    }
-    xlnz[neqns + 1] = point;
-    point = 1;
-    for (ksup = 1; ksup <= nsuper; ++ksup) {
-        mrglnk[ksup] = 0;
-        fstcol = xsuper[ksup];
-        xlindx[ksup] = point;
-        point += colcnt[fstcol];
-    }
-    xlindx[nsuper + 1] = point;
-    
-    /*       --------------------------- */
-    /*       FOR EACH SUPERNODE KSUP ... */
-    /*       --------------------------- */
-    for (ksup = 1; ksup <= nsuper; ++ksup) {
-        
-        /*           --------------------------------------------------------- */
-        /*           INITIALIZATIONS ... */
-        /*               FSTCOL : FIRST COLUMN OF SUPERNODE KSUP. */
-        /*               LSTCOL : LAST COLUMN OF SUPERNODE KSUP. */
-        /*               KNZ    : WILL COUNT THE NONZEROS OF L IN COLUMN KCOL. */
-        /*               RCHLNK : INITIALIZE EMPTY INDEX LIST FOR KCOL. */
-        /*           --------------------------------------------------------- */
-        fstcol = xsuper[ksup];
-        lstcol = xsuper[ksup + 1] - 1;
-        width = lstcol - fstcol + 1;
-        length = colcnt[fstcol];
-        knz = 0;
-        rchlnk[head] = tail;
-        jsup = mrglnk[ksup];
-        
-        /*           ------------------------------------------------- */
-        /*           IF KSUP HAS CHILDREN IN THE SUPERNODAL E-TREE ... */
-        /*           ------------------------------------------------- */
-        if (jsup > 0) {
-            /*               --------------------------------------------- */
-            /*               COPY THE INDICES OF THE FIRST CHILD JSUP INTO */
-            /*               THE LINKED LIST, AND MARK EACH WITH THE VALUE */
-            /*               KSUP. */
-            /*               --------------------------------------------- */
-            jwidth = xsuper[jsup + 1] - xsuper[jsup];
-            jnzbeg = xlindx[jsup] + jwidth;
-            jnzend = xlindx[jsup + 1] - 1;
-            for (jptr = jnzend; jptr >= jnzbeg; --jptr) {
-                newi = lindx[jptr];
-                ++knz;
-                marker[newi] = ksup;
-                rchlnk[newi] = rchlnk[head];
-                rchlnk[head] = newi;
-            }
-            /*               ------------------------------------------ */
-            /*               FOR EACH SUBSEQUENT CHILD JSUP OF KSUP ... */
-            /*               ------------------------------------------ */
-            jsup = mrglnk[jsup];
-        L300:
-            if (jsup != 0 && knz < length) {
-                /*                   ---------------------------------------- */
-                /*                   MERGE THE INDICES OF JSUP INTO THE LIST, */
-                /*                   AND MARK NEW INDICES WITH VALUE KSUP. */
-                /*                   ---------------------------------------- */
-                jwidth = xsuper[jsup + 1] - xsuper[jsup];
-                jnzbeg = xlindx[jsup] + jwidth;
-                jnzend = xlindx[jsup + 1] - 1;
-                nexti = head;
-                for (jptr = jnzbeg; jptr <= jnzend; ++jptr) {
-                    newi = lindx[jptr];
-                L400:
-                    i = nexti;
-                    nexti = rchlnk[i];
-                    if (newi > nexti) {
-                        goto L400;
+            template<typename Index = int64_t>
+            int symfc2(Index neqns, Index adjlen, Index *xadj, Index *adjncy, Index *perm,
+                       Index *invp, Index *colcnt, Index nsuper, Index *xsuper,
+                       Index *snode, Index nofsub, Index *xlindx, Index *lindx,
+                       Index *xlnz, Index *mrglnk, Index *rchlnk, Index *marker,
+                       Index &flag) {
+                /* Local variables */
+                Index i, knz, head, node, tail, pcol, newi, jptr, kptr, jsup, ksup, psup,
+                        nzbeg, nzend, width, nexti, point, jnzbeg, knzbeg, length, jnzend, jwidth,
+                        fstcol, knzend, lstcol;
+
+                /* Parameter adjustments */
+                --marker;
+                --xlnz;
+                --snode;
+                --colcnt;
+                --invp;
+                --perm;
+                --xadj;
+                --adjncy;
+                --mrglnk;
+                --xlindx;
+                --xsuper;
+                --lindx;
+
+                /* Function Body */
+                flag = 0;
+                if (neqns <= 0) {
+                    return 0;
+                }
+
+                /*       --------------------------------------------------- */
+                /*       INITIALIZATIONS ... */
+                /*           NZEND  : POINTS TO THE LAST USED SLOT IN LINDX. */
+                /*           TAIL   : END OF LIST INDICATOR */
+                /*                    (IN RCHLNK(*), NOT MRGLNK(*)). */
+                /*           MRGLNK : CREATE EMPTY LISTS. */
+                /*           MARKER : "UNMARK" THE INDICES. */
+                /*       --------------------------------------------------- */
+                nzend = 0;
+                head = 0;
+                tail = neqns + 1;
+                point = 1;
+                for (i = 1; i <= neqns; ++i) {
+                    marker[i] = 0;
+                    xlnz[i] = point;
+                    point += colcnt[i];
+                }
+                xlnz[neqns + 1] = point;
+                point = 1;
+                for (ksup = 1; ksup <= nsuper; ++ksup) {
+                    mrglnk[ksup] = 0;
+                    fstcol = xsuper[ksup];
+                    xlindx[ksup] = point;
+                    point += colcnt[fstcol];
+                }
+                xlindx[nsuper + 1] = point;
+
+                /*       --------------------------- */
+                /*       FOR EACH SUPERNODE KSUP ... */
+                /*       --------------------------- */
+                for (ksup = 1; ksup <= nsuper; ++ksup) {
+
+                    /*           --------------------------------------------------------- */
+                    /*           INITIALIZATIONS ... */
+                    /*               FSTCOL : FIRST COLUMN OF SUPERNODE KSUP. */
+                    /*               LSTCOL : LAST COLUMN OF SUPERNODE KSUP. */
+                    /*               KNZ    : WILL COUNT THE NONZEROS OF L IN COLUMN KCOL. */
+                    /*               RCHLNK : INITIALIZE EMPTY INDEX LIST FOR KCOL. */
+                    /*           --------------------------------------------------------- */
+                    fstcol = xsuper[ksup];
+                    lstcol = xsuper[ksup + 1] - 1;
+                    width = lstcol - fstcol + 1;
+                    length = colcnt[fstcol];
+                    knz = 0;
+                    rchlnk[head] = tail;
+                    jsup = mrglnk[ksup];
+
+                    /*           ------------------------------------------------- */
+                    /*           IF KSUP HAS CHILDREN IN THE SUPERNODAL E-TREE ... */
+                    /*           ------------------------------------------------- */
+                    if (jsup > 0) {
+                        /*               --------------------------------------------- */
+                        /*               COPY THE INDICES OF THE FIRST CHILD JSUP INTO */
+                        /*               THE LINKED LIST, AND MARK EACH WITH THE VALUE */
+                        /*               KSUP. */
+                        /*               --------------------------------------------- */
+                        jwidth = xsuper[jsup + 1] - xsuper[jsup];
+                        jnzbeg = xlindx[jsup] + jwidth;
+                        jnzend = xlindx[jsup + 1] - 1;
+                        for (jptr = jnzend; jptr >= jnzbeg; --jptr) {
+                            newi = lindx[jptr];
+                            ++knz;
+                            marker[newi] = ksup;
+                            rchlnk[newi] = rchlnk[head];
+                            rchlnk[head] = newi;
+                        }
+                        /*               ------------------------------------------ */
+                        /*               FOR EACH SUBSEQUENT CHILD JSUP OF KSUP ... */
+                        /*               ------------------------------------------ */
+                        jsup = mrglnk[jsup];
+                        L300:
+                        if (jsup != 0 && knz < length) {
+                            /*                   ---------------------------------------- */
+                            /*                   MERGE THE INDICES OF JSUP INTO THE LIST, */
+                            /*                   AND MARK NEW INDICES WITH VALUE KSUP. */
+                            /*                   ---------------------------------------- */
+                            jwidth = xsuper[jsup + 1] - xsuper[jsup];
+                            jnzbeg = xlindx[jsup] + jwidth;
+                            jnzend = xlindx[jsup + 1] - 1;
+                            nexti = head;
+                            for (jptr = jnzbeg; jptr <= jnzend; ++jptr) {
+                                newi = lindx[jptr];
+                                L400:
+                                i = nexti;
+                                nexti = rchlnk[i];
+                                if (newi > nexti) {
+                                    goto L400;
+                                }
+                                if (newi < nexti) {
+                                    ++knz;
+                                    rchlnk[i] = newi;
+                                    rchlnk[newi] = nexti;
+                                    marker[newi] = ksup;
+                                    nexti = newi;
+                                }
+                            }
+                            jsup = mrglnk[jsup];
+                            goto L300;
+                        }
                     }
-                    if (newi < nexti) {
+                    /*           --------------------------------------------------- */
+                    /*           STRUCTURE OF A(*,FSTCOL) HAS NOT BEEN EXAMINED YET. */
+                    /*           "SORT" ITS STRUCTURE INTO THE LINKED LIST, */
+                    /*           INSERTING ONLY THOSE INDICES NOT ALREADY IN THE */
+                    /*           LIST. */
+                    /*           --------------------------------------------------- */
+                    if (knz < length) {
+                        node = perm[fstcol];
+                        knzbeg = xadj[node];
+                        knzend = xadj[node + 1] - 1;
+                        for (kptr = knzbeg; kptr <= knzend; ++kptr) {
+                            newi = adjncy[kptr];
+                            newi = invp[newi];
+                            if (newi > fstcol && marker[newi] != ksup) {
+                                /*                       -------------------------------- */
+                                /*                       POSITION AND INSERT NEWI IN LIST */
+                                /*                       AND MARK IT WITH KCOL. */
+                                /*                       -------------------------------- */
+                                nexti = head;
+                                L600:
+                                i = nexti;
+                                nexti = rchlnk[i];
+                                if (newi > nexti) {
+                                    goto L600;
+                                }
+                                ++knz;
+                                rchlnk[i] = newi;
+                                rchlnk[newi] = nexti;
+                                marker[newi] = ksup;
+                            }
+                        }
+                    }
+                    /*           ------------------------------------------------------------ */
+                    /*           IF KSUP HAS NO CHILDREN, INSERT FSTCOL INTO THE LINKED LIST. */
+                    /*           ------------------------------------------------------------ */
+                    if (rchlnk[head] != fstcol) {
+                        rchlnk[fstcol] = rchlnk[head];
+                        rchlnk[head] = fstcol;
                         ++knz;
-                        rchlnk[i] = newi;
-                        rchlnk[newi] = nexti;
-                        marker[newi] = ksup;
-                        nexti = newi;
                     }
-                }
-                jsup = mrglnk[jsup];
-                goto L300;
-            }
-        }
-        /*           --------------------------------------------------- */
-        /*           STRUCTURE OF A(*,FSTCOL) HAS NOT BEEN EXAMINED YET. */
-        /*           "SORT" ITS STRUCTURE INTO THE LINKED LIST, */
-        /*           INSERTING ONLY THOSE INDICES NOT ALREADY IN THE */
-        /*           LIST. */
-        /*           --------------------------------------------------- */
-        if (knz < length) {
-            node = perm[fstcol];
-            knzbeg = xadj[node];
-            knzend = xadj[node + 1] - 1;
-            for (kptr = knzbeg; kptr <= knzend; ++kptr) {
-                newi = adjncy[kptr];
-                newi = invp[newi];
-                if (newi > fstcol && marker[newi] != ksup) {
-                    /*                       -------------------------------- */
-                    /*                       POSITION AND INSERT NEWI IN LIST */
-                    /*                       AND MARK IT WITH KCOL. */
-                    /*                       -------------------------------- */
-                    nexti = head;
-                L600:
-                    i = nexti;
-                    nexti = rchlnk[i];
-                    if (newi > nexti) {
-                        goto L600;
+
+                    /*           -------------------------------------------- */
+                    /*           COPY INDICES FROM LINKED LIST INTO LINDX(*). */
+                    /*           -------------------------------------------- */
+                    nzbeg = nzend + 1;
+                    nzend += knz;
+                    if (nzend + 1 != xlindx[ksup + 1]) {
+                        goto L8000;
                     }
-                    ++knz;
-                    rchlnk[i] = newi;
-                    rchlnk[newi] = nexti;
-                    marker[newi] = ksup;
+                    i = head;
+                    for (kptr = nzbeg; kptr <= nzend; ++kptr) {
+                        i = rchlnk[i];
+                        lindx[kptr] = i;
+                        /* L800: */
+                    }
+
+                    /*           --------------------------------------------------- */
+                    /*           IF KSUP HAS A PARENT, INSERT KSUP INTO ITS PARENT'S */
+                    /*           "MERGE" LIST. */
+                    /*           --------------------------------------------------- */
+                    if (length > width) {
+                        pcol = lindx[xlindx[ksup] + width];
+                        psup = snode[pcol];
+                        mrglnk[ksup] = mrglnk[psup];
+                        mrglnk[psup] = ksup;
+                    }
+
                 }
-            }
-        }
-        /*           ------------------------------------------------------------ */
-        /*           IF KSUP HAS NO CHILDREN, INSERT FSTCOL INTO THE LINKED LIST. */
-        /*           ------------------------------------------------------------ */
-        if (rchlnk[head] != fstcol) {
-            rchlnk[fstcol] = rchlnk[head];
-            rchlnk[head] = fstcol;
-            ++knz;
-        }
-        
-        /*           -------------------------------------------- */
-        /*           COPY INDICES FROM LINKED LIST INTO LINDX(*). */
-        /*           -------------------------------------------- */
-        nzbeg = nzend + 1;
-        nzend += knz;
-        if (nzend + 1 != xlindx[ksup + 1]) {
-            goto L8000;
-        }
-        i = head;
-        for (kptr = nzbeg; kptr <= nzend; ++kptr) {
-            i = rchlnk[i];
-            lindx[kptr] = i;
-            /* L800: */
-        }
-        
-        /*           --------------------------------------------------- */
-        /*           IF KSUP HAS A PARENT, INSERT KSUP INTO ITS PARENT'S */
-        /*           "MERGE" LIST. */
-        /*           --------------------------------------------------- */
-        if (length > width) {
-            pcol = lindx[xlindx[ksup] + width];
-            psup = snode[pcol];
-            mrglnk[ksup] = mrglnk[psup];
-            mrglnk[psup] = ksup;
-        }
-        
-    }
-    
-    return 0;
-    
-    /*       ----------------------------------------------- */
-    /*       INCONSISTENCY IN DATA STRUCTURE WAS DISCOVERED. */
-    /*       ----------------------------------------------- */
-L8000:
-    flag = -2;
-    return 0;
-    
-} /* symfc2 */
+
+                return 0;
+
+                /*       ----------------------------------------------- */
+                /*       INCONSISTENCY IN DATA STRUCTURE WAS DISCOVERED. */
+                /*       ----------------------------------------------- */
+                L8000:
+                flag = -2;
+                return 0;
+
+            } /* symfc2 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3263,33 +3254,33 @@ L8000:
 
 /* *********************************************************************** */
 
-template<typename Index = int64_t>
-void symfct(Index neqns, Index adjlen, Index *xadj,
-            Index *adjncy, Index *perm, Index *invp, Index *colcnt,
-            Index nsuper, Index *xsuper, Index *snode, Index nofsub,
-            Index *xlindx, Index *lindx, Index *xlnz, Index iwsiz, Index *iwork,
-            Index &flag) {
-    flag = 0;
-    if (iwsiz < nsuper + (neqns << 1) + 1) {
-        flag = -1;
-        std::cerr << "\n";
-        std::cerr << "*** INTEGER WORK STORAGE = " << iwsiz << "\n";
-        std::cerr << "*** IS SMALLER THAN REQUIRED = "
-        << nsuper + (neqns << 1) + 1 << "\n";
-        std::cerr << "\n";
-        return;
-    }
-    symfc2(neqns, adjlen, xadj, adjncy, perm, invp, colcnt,
-           nsuper, xsuper, snode, nofsub, xlindx, lindx, xlnz,
-           iwork, &iwork[nsuper], &iwork[nsuper + neqns + 1], flag);
-    if (flag == -2) {
-        std::cerr << "\n";
-        std::cerr << "*** INCONSISTENCY IN THE INPUT\n";
-        std::cerr << "*** TO SYMBOLIC FACTORIZATION\n";
-        std::cerr << "\n";
-        return;
-    }
-} /* symfct */
+            template<typename Index = int64_t>
+            void symfct(Index neqns, Index adjlen, Index *xadj,
+                        Index *adjncy, Index *perm, Index *invp, Index *colcnt,
+                        Index nsuper, Index *xsuper, Index *snode, Index nofsub,
+                        Index *xlindx, Index *lindx, Index *xlnz, Index iwsiz, Index *iwork,
+                        Index &flag) {
+                flag = 0;
+                if (iwsiz < nsuper + (neqns << 1) + 1) {
+                    flag = -1;
+                    std::cerr << "\n";
+                    std::cerr << "*** INTEGER WORK STORAGE = " << iwsiz << "\n";
+                    std::cerr << "*** IS SMALLER THAN REQUIRED = "
+                              << nsuper + (neqns << 1) + 1 << "\n";
+                    std::cerr << "\n";
+                    return;
+                }
+                symfc2(neqns, adjlen, xadj, adjncy, perm, invp, colcnt,
+                       nsuper, xsuper, snode, nofsub, xlindx, lindx, xlnz,
+                       iwork, &iwork[nsuper], &iwork[nsuper + neqns + 1], flag);
+                if (flag == -2) {
+                    std::cerr << "\n";
+                    std::cerr << "*** INCONSISTENCY IN THE INPUT\n";
+                    std::cerr << "*** TO SYMBOLIC FACTORIZATION\n";
+                    std::cerr << "\n";
+                    return;
+                }
+            } /* symfct */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3319,12 +3310,12 @@ void symfct(Index neqns, Index adjlen, Index *xadj,
 
 /* *********************************************************************** */
 
-template<typename Scalar>
-void scal(int64_t n, Scalar a, Scalar *x) {
-    for (int64_t i = 0; i < n; ++i) {
-        x[i] = a * x[i];
-    }
-} /* scal */
+            template<typename Scalar>
+            void scal(int64_t n, Scalar a, Scalar *x) {
+                for (int64_t i = 0; i < n; ++i) {
+                    x[i] = a * x[i];
+                }
+            } /* scal */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3357,38 +3348,28 @@ void scal(int64_t n, Scalar a, Scalar *x) {
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void smxpy1(Index m, Index n, Scalar *y, Index *apnt, Scalar *a) {
-    /* System generated locals */
-    Index i__3, i__4, i__5;
-    Scalar z__2;
-    
-    /* Local variables */
-    Index i, j, ii, jj;
-    Scalar amult;
-    
-    /* Parameter adjustments */
-    --y;
-    --apnt;
-    --a;
-    
-    /* Function Body */
-    for (j = 1; j <= n; ++j) {
-        jj = apnt[j];
-        ii = apnt[j + 1] - m;
-        z__2 = -a[jj];
-        i__3 = ii;
-        amult = z__2 * a[i__3];
-        for (i = 1; i <= m; ++i) {
-            i__3 = i;
-            i__4 = i;
-            i__5 = ii;
-            z__2 = amult * a[i__5];
-            y[i__3] = y[i__4] + z__2;
-            ++ii;
-        }
-    }
-} /* smxpy1 */
+            template<typename Scalar, typename Index>
+            void smxpy1(Index m, Index n, Scalar *y, Index *apnt, Scalar *a) {
+                /* Local variables */
+                Index i, j, ii, jj;
+                Scalar amult, z2;
+
+                /* Parameter adjustments */
+                --y;
+                --a;
+
+                /* Function Body */
+                for (j = 0; j < n; ++j) {
+                    jj = apnt[j];
+                    ii = apnt[j + 1] - m;
+                    z2 = -a[jj];
+                    amult = z2 * a[ii];
+                    for (i = 1; i <= m; ++i) {
+                        y[i] += amult * a[ii];
+                        ++ii;
+                    }
+                }
+            } /* smxpy1 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3427,51 +3408,47 @@ void smxpy1(Index m, Index n, Scalar *y, Index *apnt, Scalar *a) {
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void pchol(Index m, Index n, Index *xpnt, Scalar *x, Index &iflag) {
-    /* Local variables */
-    Index mm;
-    Scalar diag;
-    Index jcol, jpnt;
-    
-    /*       ------------------------------------------ */
-    /*       FOR EVERY COLUMN JCOL IN THE SUPERNODE ... */
-    /*       ------------------------------------------ */
-    /* Parameter adjustments */
-    --x;
-    --xpnt;
-    
-    /* Function Body */
-    mm = m;
-    jpnt = xpnt[1];
-    for (jcol = 1; jcol <= n; ++jcol) {
-        
-        /*           ---------------------------------- */
-        /*           UPDATE JCOL WITH PREVIOUS COLUMNS. */
-        /*           ---------------------------------- */
-        if (jcol > 1) {
-            smxpy1(mm, jcol - 1, &x[jpnt], &xpnt[1], &x[1]);
-        }
-        
-        /*           --------------------------- */
-        /*           COMPUTE THE DIAGONAL ENTRY. */
-        /*           --------------------------- */
-        diag = x[jpnt];
-        if (diag == static_cast<Scalar>(0.0)) {
-            iflag = 1;
-            return;
-        }
-        diag = static_cast<Scalar>(1.0) / diag;
-        
-        /*           ---------------------------------------------------- */
-        /*           SCALE COLUMN JCOL WITH RECIPROCAL OF DIAGONAL ENTRY. */
-        /*           ---------------------------------------------------- */
-        --mm;
-        ++jpnt;
-        scal(mm, diag, &x[jpnt]);
-        jpnt += mm;
-    }
-} /* pchol */
+            template<typename Scalar, typename Index>
+            void pchol(Index m, Index n, Index *xpnt, Scalar *x, Index &iflag) {
+                /* Local variables */
+                Index mm;
+                Scalar diag;
+                Index jcol, jpnt;
+
+                /*       ------------------------------------------ */
+                /*       FOR EVERY COLUMN JCOL IN THE SUPERNODE ... */
+                /*       ------------------------------------------ */
+
+                mm = m;
+                jpnt = xpnt[0];
+                for (jcol = 0; jcol < n; ++jcol) {
+
+                    /*           ---------------------------------- */
+                    /*           UPDATE JCOL WITH PREVIOUS COLUMNS. */
+                    /*           ---------------------------------- */
+                    if (jcol > 0) {
+                        smxpy1(mm, jcol, &x[jpnt - 1], xpnt, x);
+                    }
+
+                    /*           --------------------------- */
+                    /*           COMPUTE THE DIAGONAL ENTRY. */
+                    /*           --------------------------- */
+                    diag = x[jpnt - 1];
+                    if (diag == static_cast<Scalar>(0.0)) {
+                        iflag = 1;
+                        return;
+                    }
+                    diag = static_cast<Scalar>(1.0) / diag;
+
+                    /*           ---------------------------------------------------- */
+                    /*           SCALE COLUMN JCOL WITH RECIPROCAL OF DIAGONAL ENTRY. */
+                    /*           ---------------------------------------------------- */
+                    --mm;
+                    ++jpnt;
+                    scal(mm, diag, &x[jpnt - 1]);
+                    jpnt += mm;
+                }
+            } /* pchol */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3511,59 +3488,51 @@ void pchol(Index m, Index n, Index *xpnt, Scalar *x, Index &iflag) {
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-int mmpy1(Index m, Index n, Index q, Index *xpnt, Scalar *x, Scalar *y,
-          Index ldy) {
-    /* System generated locals */
-    Index i__4, i__5, i__6;
-    Scalar z__1, z__2;
-    
-    /* Local variables */
-    Scalar a1;
-    Index i1, j1, mm, iy, xcol, ycol, leny, iylast, iystop, iystrt;
-    
-    /* Parameter adjustments */
-    --y;
-    --x;
-    --xpnt;
-    
-    /* Function Body */
-    mm = m;
-    iylast = 0;
-    leny = ldy;
-    /*       ------------------------------------ */
-    /*       TO COMPUTE EACH COLUMN YCOL OF Y ... */
-    /*       ------------------------------------ */
-    for (ycol = 1; ycol <= q; ++ycol) {
-        iystrt = iylast + 1;
-        iystop = iystrt + mm - 1;
-        iylast += leny;
-        /*           -------------------------------------------------- */
-        /*           ... PERFORM THE APPROPRIATE MATRIX VECTOR MULTIPLY: */
-        /*               X * A(*,YCOL). */
-        /*           -------------------------------------------------- */
-        for (xcol = 1; xcol <= n; ++xcol) {
-            j1 = xpnt[xcol];
-            i1 = xpnt[xcol + 1] - mm;
-            z__2 = -x[j1];
-            z__1 = z__2 * x[i1];
-            a1 = z__1;
-            for (iy = iystrt; iy <= iystop; ++iy) {
-                i__4 = iy;
-                i__5 = iy;
-                i__6 = i1;
-                z__2 = a1 * x[i__6];
-                z__1 = y[i__5] + z__2;
-                y[i__4] = z__1;
-                ++i1;
-            }
-        }
-        --mm;
-        --leny;
-    }
-    
-    return 0;
-} /* mmpy1 */
+            template<typename Scalar, typename Index>
+            int mmpy1(Index m, Index n, Index q, Index *xpnt, Scalar *x, Scalar *y,
+                      Index ldy) {
+                /* Local variables */
+                Scalar a1, z1, z2;
+                Index i1, j1, mm, iy, xcol, ycol, leny, iylast, iystop, iystrt;
+
+                /* Parameter adjustments */
+                --y;
+                --x;
+                --xpnt;
+
+                mm = m;
+                iylast = 0;
+                leny = ldy;
+                /*       ------------------------------------ */
+                /*       TO COMPUTE EACH COLUMN YCOL OF Y ... */
+                /*       ------------------------------------ */
+                for (ycol = 1; ycol <= q; ++ycol) {
+                    iystrt = iylast + 1;
+                    iystop = iystrt + mm - 1;
+                    iylast += leny;
+                    /*           -------------------------------------------------- */
+                    /*           ... PERFORM THE APPROPRIATE MATRIX VECTOR MULTIPLY: */
+                    /*               X * A(*,YCOL). */
+                    /*           -------------------------------------------------- */
+                    for (xcol = 1; xcol <= n; ++xcol) {
+                        j1 = xpnt[xcol];
+                        i1 = xpnt[xcol + 1] - mm;
+                        z2 = -x[j1];
+                        z1 = z2 * x[i1];
+                        a1 = z1;
+                        for (iy = iystrt; iy <= iystop; ++iy) {
+                            z2 = a1 * x[i1];
+                            z1 = y[iy] + z2;
+                            y[iy] = z1;
+                            ++i1;
+                        }
+                    }
+                    --mm;
+                    --leny;
+                }
+
+                return 0;
+            } /* mmpy1 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3602,51 +3571,51 @@ int mmpy1(Index m, Index n, Index q, Index *xpnt, Scalar *x, Scalar *y,
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void chlsup(Index m, Index n, Index *split, Index *xpnt, Scalar *x,
-            Index &iflag) {
-    Index q, mm, nn, jblk, jpnt;
-    Index fstcol, nxtcol;
-    
-    /* Parameter adjustments */
-    --x;
-    --xpnt;
-    --split;
-    
-    /* Function Body */
-    jblk = 0;
-    fstcol = 1;
-    mm = m;
-    jpnt = xpnt[fstcol];
-    
-    /*       ---------------------------------------- */
-    /*       FOR EACH BLOCK JBLK IN THE SUPERNODE ... */
-    /*       ---------------------------------------- */
-    while (fstcol <= n) {
-        ++jblk;
-        nn = split[jblk];
-        /*           ------------------------------------------ */
-        /*           ... PERFORM PARTIAL CHOLESKY FACTORIZATION */
-        /*               ON THE BLOCK. */
-        /*           ------------------------------------------ */
-        pchol(mm, nn, &xpnt[fstcol], &x[1], iflag);
-        if (iflag == 1) {
-            return;
-        }
-        /*           ---------------------------------------------- */
-        /*           ... APPLY THE COLUMNS IN JBLK TO ANY COLUMNS */
-        /*               OF THE SUPERNODE REMAINING TO BE COMPUTED. */
-        /*           ---------------------------------------------- */
-        nxtcol = fstcol + nn;
-        q = n - nxtcol + 1;
-        mm -= nn;
-        jpnt = xpnt[nxtcol];
-        if (q > 0) {
-            mmpy1(mm, nn, q, &xpnt[fstcol], &x[1], &x[jpnt], mm);
-        }
-        fstcol = nxtcol;
-    }
-} /* chlsup */
+            template<typename Scalar, typename Index>
+            void chlsup(Index m, Index n, Index *split, Index *xpnt, Scalar *x,
+                        Index &iflag) {
+                Index q, mm, nn, jblk, jpnt;
+                Index fstcol, nxtcol;
+
+                /* Parameter adjustments */
+                --x;
+                --xpnt;
+                --split;
+
+                /* Function Body */
+                jblk = 0;
+                fstcol = 1;
+                mm = m;
+                jpnt = xpnt[fstcol];
+
+                /*       ---------------------------------------- */
+                /*       FOR EACH BLOCK JBLK IN THE SUPERNODE ... */
+                /*       ---------------------------------------- */
+                while (fstcol <= n) {
+                    ++jblk;
+                    nn = split[jblk];
+                    /*           ------------------------------------------ */
+                    /*           ... PERFORM PARTIAL CHOLESKY FACTORIZATION */
+                    /*               ON THE BLOCK. */
+                    /*           ------------------------------------------ */
+                    pchol(mm, nn, &xpnt[fstcol], &x[1], iflag);
+                    if (iflag == 1) {
+                        return;
+                    }
+                    /*           ---------------------------------------------- */
+                    /*           ... APPLY THE COLUMNS IN JBLK TO ANY COLUMNS */
+                    /*               OF THE SUPERNODE REMAINING TO BE COMPUTED. */
+                    /*           ---------------------------------------------- */
+                    nxtcol = fstcol + nn;
+                    q = n - nxtcol + 1;
+                    mm -= nn;
+                    jpnt = xpnt[nxtcol];
+                    if (q > 0) {
+                        mmpy1(mm, nn, q, &xpnt[fstcol], &x[1], &x[jpnt], mm);
+                    }
+                    fstcol = nxtcol;
+                }
+            } /* chlsup */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3685,19 +3654,19 @@ void chlsup(Index m, Index n, Index *split, Index *xpnt, Scalar *x,
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void mmpy(Index m, Index n, Index q, Index *split, Index *xpnt, Scalar *x,
-          Scalar *y, Index ldy) {
-    Index nn, blk, fstcol;
-    blk = 0;
-    fstcol = 0;
-    while (fstcol < n) {
-        nn = split[blk];
-        mmpy1(m, nn, q, &xpnt[fstcol], x, y, ldy);
-        fstcol += nn;
-        ++blk;
-    }
-} /* mmpy */
+            template<typename Scalar, typename Index>
+            void mmpy(Index m, Index n, Index q, Index *split, Index *xpnt, Scalar *x,
+                      Scalar *y, Index ldy) {
+                Index nn, blk, fstcol;
+                blk = 0;
+                fstcol = 0;
+                while (fstcol < n) {
+                    nn = split[blk];
+                    mmpy1(m, nn, q, &xpnt[fstcol], x, y, ldy);
+                    fstcol += nn;
+                    ++blk;
+                }
+            } /* mmpy */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3737,34 +3706,34 @@ void mmpy(Index m, Index n, Index q, Index *split, Index *xpnt, Scalar *x,
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void mmpyi_(Index m, Index q, Index *xpnt, Scalar *x, Scalar d, Index *iy,
-            Scalar *y, Index *relind) {
-    /* Local variables */
-    Scalar a, z1, z2;
-    Index i, k, col, isub, ylast;
-    
-    /* Parameter adjustments */
-    --relind;
-    --y;
-    --iy;
-    --x;
-    --xpnt;
-    
-    /* Function Body */
-    for (k = 1; k <= q; ++k) {
-        col = xpnt[k];
-        ylast = iy[col + 1] - 1;
-        z2 = -(d);
-        z1 = z2 * x[k];
-        a = z1;
-        for (i = k; i <= m; ++i) {
-            isub = xpnt[i];
-            isub = ylast - relind[isub];
-            y[isub] += a * x[i];
-        }
-    }
-} /* mmpyi_ */
+            template<typename Scalar, typename Index>
+            void mmpyi(Index m, Index q, Index *xpnt, Scalar *x, Scalar d, Index *iy,
+                       Scalar *y, Index *relind) {
+                /* Local variables */
+                Scalar a, z1, z2;
+                Index i, k, col, isub, ylast;
+
+                /* Parameter adjustments */
+                --relind;
+                --y;
+                --iy;
+                --x;
+                --xpnt;
+
+                /* Function Body */
+                for (k = 1; k <= q; ++k) {
+                    col = xpnt[k];
+                    ylast = iy[col + 1] - 1;
+                    z2 = -(d);
+                    z1 = z2 * x[k];
+                    a = z1;
+                    for (i = k; i <= m; ++i) {
+                        isub = xpnt[i];
+                        isub = ylast - relind[isub];
+                        y[isub] += a * x[i];
+                    }
+                }
+            } /* mmpyi */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3798,94 +3767,82 @@ void mmpyi_(Index m, Index q, Index *xpnt, Scalar *x, Scalar d, Index *iy,
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void blkslv(Index nsuper, Index *xsuper, Index *xlindx, Index *lindx,
-             Index *xlnz, Scalar *lnz, Scalar *rhs) {
-    /* System generated locals */
-    Index i__3, i__4, i__5, i__6;
-    Scalar z__1, z__2;
-    
-    /* Local variables */
-    Index i;
-    Scalar t;
-    Index ix, jcol, ipnt, jpnt, jsup, fjcol, ljcol, ixstop, ixstrt;
-    
-    /* Parameter adjustments */
-    --rhs;
-    --lnz;
-    --xlnz;
-    --lindx;
-    --xlindx;
-    --xsuper;
-    
-    /* Function Body */
-    if (nsuper <= 0) {
-        return;
-    }
-    
-    /*       ------------------------ */
-    /*       FORWARD SUBSTITUTION ... */
-    /*       ------------------------ */
-    fjcol = xsuper[1];
-    for (jsup = 1; jsup <= nsuper; ++jsup) {
-        ljcol = xsuper[jsup + 1] - 1;
-        ixstrt = xlnz[fjcol];
-        jpnt = xlindx[jsup];
-        for (jcol = fjcol; jcol <= ljcol; ++jcol) {
-            ixstop = xlnz[jcol + 1] - 1;
-            t = rhs[jcol];
-            ipnt = jpnt + 1;
-            for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
-                i = lindx[ipnt];
-                i__4 = i;
-                i__5 = i;
-                i__6 = ix;
-                z__2 = t * lnz[i__6];
-                z__1 = rhs[i__5] - z__2;
-                rhs[i__4] = z__1;
-                ++ipnt;
-            }
-            ixstrt = ixstop + 1;
-            ++jpnt;
-        }
-        fjcol = ljcol + 1;
-    }
-    
-    /*       ------------------ */
-    /*       DIAGONAL SOLVE ... */
-    /*       ------------------ */
-    for (jcol = 1; jcol < xsuper[nsuper + 1]; ++jcol) {
-        rhs[jcol] = rhs[jcol] / lnz[xlnz[jcol]];
-    }
-    
-    /*       ------------------------- */
-    /*       BACKWARD SUBSTITUTION ... */
-    /*       ------------------------- */
-    ljcol = xsuper[nsuper + 1] - 1;
-    for (jsup = nsuper; jsup >= 1; --jsup) {
-        fjcol = xsuper[jsup];
-        ixstop = xlnz[ljcol + 1] - 1;
-        jpnt = xlindx[jsup] + (ljcol - fjcol);
-        for (jcol = ljcol; jcol >= fjcol; --jcol) {
-            ixstrt = xlnz[jcol];
-            ipnt = jpnt + 1;
-            t = rhs[jcol];
-            for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
-                i = lindx[ipnt];
-                i__3 = ix;
-                i__4 = i;
-                z__2 = lnz[i__3] * rhs[i__4];
-                z__1 = t - z__2;
-                t = z__1;
-                ++ipnt;
-            }
-            rhs[jcol] = t;
-            ixstop = ixstrt - 1;
-            --jpnt;
-        }
-        ljcol = fjcol - 1;
-    }
-} /* blkslv_ */
+            template<typename Scalar, typename Index>
+            void blkslv(Index nsuper, Index *xsuper, Index *xlindx, Index *lindx,
+                        Index *xlnz, Scalar *lnz, Scalar *rhs) {
+
+                /* Local variables */
+                Index i;
+                Scalar t, z1, z2;
+                Index ix, jcol, ipnt, jpnt, jsup, fjcol, ljcol, ixstop, ixstrt;
+
+                if (nsuper <= 0) {
+                    return;
+                }
+
+                /* Parameter adjustments */
+                --rhs;
+                --lnz;
+                --xlnz;
+                --lindx;
+                --xlindx;
+
+                /*       ------------------------ */
+                /*       FORWARD SUBSTITUTION ... */
+                /*       ------------------------ */
+                fjcol = xsuper[0];
+                for (jsup = 1; jsup <= nsuper; ++jsup) {
+                    ljcol = xsuper[jsup] - 1;
+                    ixstrt = xlnz[fjcol];
+                    jpnt = xlindx[jsup];
+                    for (jcol = fjcol; jcol <= ljcol; ++jcol) {
+                        ixstop = xlnz[jcol + 1] - 1;
+                        t = rhs[jcol];
+                        ipnt = jpnt + 1;
+                        for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
+                            i = lindx[ipnt];
+                            z2 = t * lnz[ix];
+                            z1 = rhs[i] - z2;
+                            rhs[i] = z1;
+                            ++ipnt;
+                        }
+                        ixstrt = ixstop + 1;
+                        ++jpnt;
+                    }
+                    fjcol = ljcol + 1;
+                }
+
+                /*       ------------------ */
+                /*       DIAGONAL SOLVE ... */
+                /*       ------------------ */
+                for (jcol = 1; jcol < xsuper[nsuper]; ++jcol) {
+                    rhs[jcol] = rhs[jcol] / lnz[xlnz[jcol]];
+                }
+
+                /*       ------------------------- */
+                /*       BACKWARD SUBSTITUTION ... */
+                /*       ------------------------- */
+                ljcol = xsuper[nsuper] - 1;
+                for (jsup = nsuper; jsup >= 1; --jsup) {
+                    fjcol = xsuper[jsup - 1];
+                    ixstop = xlnz[ljcol + 1] - 1;
+                    jpnt = xlindx[jsup] + (ljcol - fjcol);
+                    for (jcol = ljcol; jcol >= fjcol; --jcol) {
+                        ixstrt = xlnz[jcol];
+                        ipnt = jpnt + 1;
+                        t = rhs[jcol];
+                        for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
+                            i = lindx[ipnt];
+                            t -= lnz[ix] * rhs[i];
+                            ++ipnt;
+                        }
+                        rhs[jcol] = t;
+                        ixstop = ixstrt - 1;
+                        --jpnt;
+                    }
+                    ljcol = fjcol - 1;
+                }
+            } /* blkslv */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -3945,273 +3902,273 @@ void blkslv(Index nsuper, Index *xsuper, Index *xlindx, Index *lindx,
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void blkfc2(Index nsuper, Index *xsuper, Index *snode, Index *split,
-            Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Index *link,
-            Index *length, Index *indmap, Index *relind, Index tmpsiz,
-            Scalar *temp, Index &iflag) {
-    /* Local variables */
-    Index i, ilen, jlen, klen, jsup, ksup;
-    Index fjcol, fkcol, ljcol;
-    Index klast, kdpnt, ilpnt, jlpnt, klpnt, store;
-    Index jxpnt, kxpnt, inddif;
-    Index njcols, nkcols;
-    Index ncolup, kfirst, nxtcol, nxksup, nxtsup;
-    
-    /* Parameter adjustments */
-    --temp;
-    --relind;
-    --indmap;
-    --length;
-    --link;
-    --lnz;
-    --xlnz;
-    --lindx;
-    --xlindx;
-    --split;
-    --snode;
-    --xsuper;
-    
-    /* Function Body */
-    iflag = 0;
-    
-    /*       ----------------------------------------------------------- */
-    /*       INITIALIZE EMPTY ROW LISTS IN LINK(*) AND ZERO OUT TEMP(*). */
-    /*       ----------------------------------------------------------- */
-    for (jsup = 1; jsup <= nsuper; ++jsup) {
-        link[jsup] = 0;
-    }
-    for (i = 1; i <= tmpsiz; ++i) {
-        temp[i] = 0;
-    }
-    
-    /*       --------------------------- */
-    /*       FOR EACH SUPERNODE JSUP ... */
-    /*       --------------------------- */
-    for (jsup = 1; jsup <= nsuper; ++jsup) {
-        
-        /*           ------------------------------------------------ */
-        /*           FJCOL  ...  FIRST COLUMN OF SUPERNODE JSUP. */
-        /*           LJCOL  ...  LAST COLUMN OF SUPERNODE JSUP. */
-        /*           NJCOLS ...  NUMBER OF COLUMNS IN SUPERNODE JSUP. */
-        /*           JLEN   ...  LENGTH OF COLUMN FJCOL. */
-        /*           JXPNT  ...  POINTER TO INDEX OF FIRST */
-        /*                       NONZERO IN COLUMN FJCOL. */
-        /*           ------------------------------------------------ */
-        fjcol = xsuper[jsup];
-        njcols = xsuper[jsup + 1] - fjcol;
-        ljcol = fjcol + njcols - 1;
-        jlen = xlnz[fjcol + 1] - xlnz[fjcol];
-        jxpnt = xlindx[jsup];
-        
-        /*           ----------------------------------------------------- */
-        /*           SET UP INDMAP(*) TO MAP THE ENTRIES IN UPDATE COLUMNS */
-        /*           TO THEIR CORRESPONDING POSITIONS IN UPDATED COLUMNS, */
-        /*           RELATIVE THE THE BOTTOM OF EACH UPDATED COLUMN. */
-        /*           ----------------------------------------------------- */
-        ldindx(jlen, &lindx[jxpnt], &indmap[1]);
-        
-        /*           ----------------------------------------- */
-        /*           FOR EVERY SUPERNODE KSUP IN ROW(JSUP) ... */
-        /*           ----------------------------------------- */
-        ksup = link[jsup];
-    L300:
-        if (ksup > 0) {
-            nxksup = link[ksup];
-            
-            /*               -------------------------------------------------------
-             */
-            /*               GET INFO ABOUT THE CMOD(JSUP,KSUP) UPDATE. */
-            
-            /*               FKCOL  ...  FIRST COLUMN OF SUPERNODE KSUP. */
-            /*               NKCOLS ...  NUMBER OF COLUMNS IN SUPERNODE KSUP. */
-            /*               KLEN   ...  LENGTH OF ACTIVE PORTION OF COLUMN FKCOL. */
-            /*               KXPNT  ...  POINTER TO INDEX OF FIRST NONZERO IN ACTIVE
-             */
-            /*                           PORTION OF COLUMN FJCOL. */
-            /*               -------------------------------------------------------
-             */
-            fkcol = xsuper[ksup];
-            nkcols = xsuper[ksup + 1] - fkcol;
-            klen = length[ksup];
-            kxpnt = xlindx[ksup + 1] - klen;
-            
-            /*               ------------------------------------------- */
-            /*               PERFORM CMOD(JSUP,KSUP), WITH SPECIAL CASES */
-            /*               HANDLED DIFFERENTLY. */
-            /*               ------------------------------------------- */
-            
-            if (klen != jlen) {
-                
-                /*                   ------------------------------------------- */
-                /*                   SPARSE CMOD(JSUP,KSUP). */
-                
-                /*                   NCOLUP ... NUMBER OF COLUMNS TO BE UPDATED. */
-                /*                   ------------------------------------------- */
-                
-                for (i = 0; i < klen; ++i) {
-                    nxtcol = lindx[kxpnt + i];
-                    if (nxtcol > ljcol) {
-                        goto L500;
-                    }
+            template<typename Scalar, typename Index>
+            void blkfc2(Index nsuper, Index *xsuper, Index *snode, Index *split,
+                        Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Index *link,
+                        Index *length, Index *indmap, Index *relind, Index tmpsiz,
+                        Scalar *temp, Index &iflag) {
+                /* Local variables */
+                Index i, ilen, jlen, klen, jsup, ksup;
+                Index fjcol, fkcol, ljcol;
+                Index klast, kdpnt, ilpnt, jlpnt, klpnt, store;
+                Index jxpnt, kxpnt, inddif;
+                Index njcols, nkcols;
+                Index ncolup, kfirst, nxtcol, nxksup, nxtsup;
+
+                /* Parameter adjustments */
+                --temp;
+                --relind;
+                --indmap;
+                --length;
+                --link;
+                --lnz;
+                --xlnz;
+                --lindx;
+                --xlindx;
+                --split;
+                --snode;
+                --xsuper;
+
+                /* Function Body */
+                iflag = 0;
+
+                /*       ----------------------------------------------------------- */
+                /*       INITIALIZE EMPTY ROW LISTS IN LINK(*) AND ZERO OUT TEMP(*). */
+                /*       ----------------------------------------------------------- */
+                for (jsup = 1; jsup <= nsuper; ++jsup) {
+                    link[jsup] = 0;
                 }
-                i = klen;
-            L500:
-                ncolup = i;
-                
-                if (nkcols == 1) {
-                    
-                    /*                       ----------------------------------------------
-                     */
-                    /*                       UPDATING TARGET SUPERNODE BY TRIVIAL */
-                    /*                       SUPERNODE (WITH ONE COLUMN). */
-                    
-                    /*                       KLPNT  ...  POINTER TO FIRST NONZERO IN
-                     * ACTIVE */
-                    /*                                   PORTION OF COLUMN FKCOL. */
-                    /*                       KDPNT  ...  POINTER TO DIAGONAL ENTRY OF */
-                    /*                                   COLUMN FKCOL. */
-                    /*                       ----------------------------------------------
-                     */
-                    klpnt = xlnz[fkcol + 1] - klen;
-                    kdpnt = xlnz[fkcol];
-                    mmpyi_(klen, ncolup, &lindx[kxpnt], &lnz[klpnt], lnz[kdpnt],
-                           &xlnz[1], &lnz[1], &indmap[1]);
-                    
-                } else {
-                    
-                    /*                       --------------------------------------------
-                     */
-                    /*                       KFIRST ...  FIRST INDEX OF ACTIVE PORTION OF
-                     */
-                    /*                                   SUPERNODE KSUP (FIRST COLUMN TO
-                     */
-                    /*                                   BE UPDATED). */
-                    /*                       KLAST  ...  LAST INDEX OF ACTIVE PORTION OF
-                     */
-                    /*                                   SUPERNODE KSUP. */
-                    /*                       --------------------------------------------
-                     */
-                    
-                    kfirst = lindx[kxpnt];
-                    klast = lindx[kxpnt + klen - 1];
-                    inddif = indmap[kfirst] - indmap[klast];
-                    
-                    if (inddif < klen) {
-                        
-                        /*                           ---------------------------------------
+                for (i = 1; i <= tmpsiz; ++i) {
+                    temp[i] = 0;
+                }
+
+                /*       --------------------------- */
+                /*       FOR EACH SUPERNODE JSUP ... */
+                /*       --------------------------- */
+                for (jsup = 1; jsup <= nsuper; ++jsup) {
+
+                    /*           ------------------------------------------------ */
+                    /*           FJCOL  ...  FIRST COLUMN OF SUPERNODE JSUP. */
+                    /*           LJCOL  ...  LAST COLUMN OF SUPERNODE JSUP. */
+                    /*           NJCOLS ...  NUMBER OF COLUMNS IN SUPERNODE JSUP. */
+                    /*           JLEN   ...  LENGTH OF COLUMN FJCOL. */
+                    /*           JXPNT  ...  POINTER TO INDEX OF FIRST */
+                    /*                       NONZERO IN COLUMN FJCOL. */
+                    /*           ------------------------------------------------ */
+                    fjcol = xsuper[jsup];
+                    njcols = xsuper[jsup + 1] - fjcol;
+                    ljcol = fjcol + njcols - 1;
+                    jlen = xlnz[fjcol + 1] - xlnz[fjcol];
+                    jxpnt = xlindx[jsup];
+
+                    /*           ----------------------------------------------------- */
+                    /*           SET UP INDMAP(*) TO MAP THE ENTRIES IN UPDATE COLUMNS */
+                    /*           TO THEIR CORRESPONDING POSITIONS IN UPDATED COLUMNS, */
+                    /*           RELATIVE THE THE BOTTOM OF EACH UPDATED COLUMN. */
+                    /*           ----------------------------------------------------- */
+                    ldindx(jlen, &lindx[jxpnt], &indmap[1]);
+
+                    /*           ----------------------------------------- */
+                    /*           FOR EVERY SUPERNODE KSUP IN ROW(JSUP) ... */
+                    /*           ----------------------------------------- */
+                    ksup = link[jsup];
+                    L300:
+                    if (ksup > 0) {
+                        nxksup = link[ksup];
+
+                        /*               -------------------------------------------------------
                          */
-                        /*                           DENSE CMOD(JSUP,KSUP). */
-                        
-                        /*                           ILPNT  ...  POINTER TO FIRST NONZERO IN
+                        /*               GET INFO ABOUT THE CMOD(JSUP,KSUP) UPDATE. */
+
+                        /*               FKCOL  ...  FIRST COLUMN OF SUPERNODE KSUP. */
+                        /*               NKCOLS ...  NUMBER OF COLUMNS IN SUPERNODE KSUP. */
+                        /*               KLEN   ...  LENGTH OF ACTIVE PORTION OF COLUMN FKCOL. */
+                        /*               KXPNT  ...  POINTER TO INDEX OF FIRST NONZERO IN ACTIVE
                          */
-                        /*                                       COLUMN KFIRST. */
-                        /*                           ILEN   ...  LENGTH OF COLUMN KFIRST. */
-                        /*                           ---------------------------------------
+                        /*                           PORTION OF COLUMN FJCOL. */
+                        /*               -------------------------------------------------------
                          */
-                        ilpnt = xlnz[kfirst];
-                        ilen = xlnz[kfirst + 1] - ilpnt;
-                        mmpy(klen, nkcols, ncolup, &split[fkcol], &xlnz[fkcol], &lnz[1],
-                             &lnz[ilpnt], ilen);
-                        
-                    } else {
-                        
-                        /*                           ------------------------------- */
-                        /*                           GENERAL SPARSE CMOD(JSUP,KSUP). */
-                        /*                           COMPUTE CMOD(JSUP,KSUP) UPDATE */
-                        /*                           IN WORK STORAGE. */
-                        /*                           ------------------------------- */
-                        store = klen * ncolup - ncolup * (ncolup - 1) / 2;
-                        if (store > tmpsiz) {
-                            iflag = -2;
-                            return;
+                        fkcol = xsuper[ksup];
+                        nkcols = xsuper[ksup + 1] - fkcol;
+                        klen = length[ksup];
+                        kxpnt = xlindx[ksup + 1] - klen;
+
+                        /*               ------------------------------------------- */
+                        /*               PERFORM CMOD(JSUP,KSUP), WITH SPECIAL CASES */
+                        /*               HANDLED DIFFERENTLY. */
+                        /*               ------------------------------------------- */
+
+                        if (klen != jlen) {
+
+                            /*                   ------------------------------------------- */
+                            /*                   SPARSE CMOD(JSUP,KSUP). */
+
+                            /*                   NCOLUP ... NUMBER OF COLUMNS TO BE UPDATED. */
+                            /*                   ------------------------------------------- */
+
+                            for (i = 0; i < klen; ++i) {
+                                nxtcol = lindx[kxpnt + i];
+                                if (nxtcol > ljcol) {
+                                    goto L500;
+                                }
+                            }
+                            i = klen;
+                            L500:
+                            ncolup = i;
+
+                            if (nkcols == 1) {
+
+                                /*                       ----------------------------------------------
+                                 */
+                                /*                       UPDATING TARGET SUPERNODE BY TRIVIAL */
+                                /*                       SUPERNODE (WITH ONE COLUMN). */
+
+                                /*                       KLPNT  ...  POINTER TO FIRST NONZERO IN
+                                 * ACTIVE */
+                                /*                                   PORTION OF COLUMN FKCOL. */
+                                /*                       KDPNT  ...  POINTER TO DIAGONAL ENTRY OF */
+                                /*                                   COLUMN FKCOL. */
+                                /*                       ----------------------------------------------
+                                 */
+                                klpnt = xlnz[fkcol + 1] - klen;
+                                kdpnt = xlnz[fkcol];
+                                mmpyi(klen, ncolup, &lindx[kxpnt], &lnz[klpnt], lnz[kdpnt],
+                                      &xlnz[1], &lnz[1], &indmap[1]);
+
+                            } else {
+
+                                /*                       --------------------------------------------
+                                 */
+                                /*                       KFIRST ...  FIRST INDEX OF ACTIVE PORTION OF
+                                 */
+                                /*                                   SUPERNODE KSUP (FIRST COLUMN TO
+                                 */
+                                /*                                   BE UPDATED). */
+                                /*                       KLAST  ...  LAST INDEX OF ACTIVE PORTION OF
+                                 */
+                                /*                                   SUPERNODE KSUP. */
+                                /*                       --------------------------------------------
+                                 */
+
+                                kfirst = lindx[kxpnt];
+                                klast = lindx[kxpnt + klen - 1];
+                                inddif = indmap[kfirst] - indmap[klast];
+
+                                if (inddif < klen) {
+
+                                    /*                           ---------------------------------------
+                                     */
+                                    /*                           DENSE CMOD(JSUP,KSUP). */
+
+                                    /*                           ILPNT  ...  POINTER TO FIRST NONZERO IN
+                                     */
+                                    /*                                       COLUMN KFIRST. */
+                                    /*                           ILEN   ...  LENGTH OF COLUMN KFIRST. */
+                                    /*                           ---------------------------------------
+                                     */
+                                    ilpnt = xlnz[kfirst];
+                                    ilen = xlnz[kfirst + 1] - ilpnt;
+                                    mmpy(klen, nkcols, ncolup, &split[fkcol], &xlnz[fkcol], &lnz[1],
+                                         &lnz[ilpnt], ilen);
+
+                                } else {
+
+                                    /*                           ------------------------------- */
+                                    /*                           GENERAL SPARSE CMOD(JSUP,KSUP). */
+                                    /*                           COMPUTE CMOD(JSUP,KSUP) UPDATE */
+                                    /*                           IN WORK STORAGE. */
+                                    /*                           ------------------------------- */
+                                    store = klen * ncolup - ncolup * (ncolup - 1) / 2;
+                                    if (store > tmpsiz) {
+                                        iflag = -2;
+                                        return;
+                                    }
+                                    mmpy(klen, nkcols, ncolup, &split[fkcol], &xlnz[fkcol], &lnz[1],
+                                         &temp[1], klen);
+                                    /*                           ----------------------------------------
+                                     */
+                                    /*                           GATHER INDICES OF KSUP RELATIVE TO
+                                     * JSUP. */
+                                    /*                           ----------------------------------------
+                                     */
+                                    igathr(klen, &lindx[kxpnt], &indmap[1], &relind[1]);
+                                    /*                           --------------------------------------
+                                     */
+                                    /*                           INCORPORATE THE CMOD(JSUP,KSUP) BLOCK
+                                     */
+                                    /*                           UPDATE INTO THE TO APPROPRIATE COLUMNS
+                                     */
+                                    /*                           OF L. */
+                                    /*                           --------------------------------------
+                                     */
+                                    assmb(klen, ncolup, &temp[1], &relind[1], &xlnz[fjcol], &lnz[1],
+                                          jlen);
+                                }
+                            }
+
+                        } else {
+
+                            /*                   ---------------------------------------------- */
+                            /*                   DENSE CMOD(JSUP,KSUP). */
+                            /*                   JSUP AND KSUP HAVE IDENTICAL STRUCTURE. */
+
+                            /*                   JLPNT  ...  POINTER TO FIRST NONZERO IN COLUMN */
+                            /*                               FJCOL. */
+                            /*                   ---------------------------------------------- */
+                            jlpnt = xlnz[fjcol];
+                            mmpy(klen, nkcols, njcols, &split[fkcol], &xlnz[fkcol], &lnz[1],
+                                 &lnz[jlpnt], jlen);
+                            ncolup = njcols;
+                            if (klen > njcols) {
+                                nxtcol = lindx[jxpnt + njcols];
+                            }
                         }
-                        mmpy(klen, nkcols, ncolup, &split[fkcol], &xlnz[fkcol], &lnz[1],
-                             &temp[1], klen);
-                        /*                           ----------------------------------------
-                         */
-                        /*                           GATHER INDICES OF KSUP RELATIVE TO
-                         * JSUP. */
-                        /*                           ----------------------------------------
-                         */
-                        igathr(klen, &lindx[kxpnt], &indmap[1], &relind[1]);
-                        /*                           --------------------------------------
-                         */
-                        /*                           INCORPORATE THE CMOD(JSUP,KSUP) BLOCK
-                         */
-                        /*                           UPDATE INTO THE TO APPROPRIATE COLUMNS
-                         */
-                        /*                           OF L. */
-                        /*                           --------------------------------------
-                         */
-                        assmb(klen, ncolup, &temp[1], &relind[1], &xlnz[fjcol], &lnz[1],
-                              jlen);
+
+                        /*               ------------------------------------------------ */
+                        /*               LINK KSUP INTO LINKED LIST OF THE NEXT SUPERNODE */
+                        /*               IT WILL UPDATE AND DECREMENT KSUP'S ACTIVE */
+                        /*               LENGTH. */
+                        /*               ------------------------------------------------ */
+                        if (klen > ncolup) {
+                            nxtsup = snode[nxtcol];
+                            link[ksup] = link[nxtsup];
+                            link[nxtsup] = ksup;
+                            length[ksup] = klen - ncolup;
+                        } else {
+                            length[ksup] = 0;
+                        }
+
+                        /*               ------------------------------- */
+                        /*               NEXT UPDATING SUPERNODE (KSUP). */
+                        /*               ------------------------------- */
+                        ksup = nxksup;
+                        goto L300;
+                    }
+
+                    /*           ---------------------------------------------- */
+                    /*           APPLY PARTIAL CHOLESKY TO THE COLUMNS OF JSUP. */
+                    /*           ---------------------------------------------- */
+                    chlsup(jlen, njcols, &split[fjcol], &xlnz[fjcol], &lnz[1], iflag);
+                    if (iflag != 0) {
+                        iflag = -1;
+                        return;
+                    }
+
+                    /*           ----------------------------------------------- */
+                    /*           INSERT JSUP INTO LINKED LIST OF FIRST SUPERNODE */
+                    /*           IT WILL UPDATE. */
+                    /*           ----------------------------------------------- */
+                    if (jlen > njcols) {
+                        nxtcol = lindx[jxpnt + njcols];
+                        nxtsup = snode[nxtcol];
+                        link[jsup] = link[nxtsup];
+                        link[nxtsup] = jsup;
+                        length[jsup] = jlen - njcols;
+                    } else {
+                        length[jsup] = 0;
                     }
                 }
-                
-            } else {
-                
-                /*                   ---------------------------------------------- */
-                /*                   DENSE CMOD(JSUP,KSUP). */
-                /*                   JSUP AND KSUP HAVE IDENTICAL STRUCTURE. */
-                
-                /*                   JLPNT  ...  POINTER TO FIRST NONZERO IN COLUMN */
-                /*                               FJCOL. */
-                /*                   ---------------------------------------------- */
-                jlpnt = xlnz[fjcol];
-                mmpy(klen, nkcols, njcols, &split[fkcol], &xlnz[fkcol], &lnz[1],
-                     &lnz[jlpnt], jlen);
-                ncolup = njcols;
-                if (klen > njcols) {
-                    nxtcol = lindx[jxpnt + njcols];
-                }
-            }
-            
-            /*               ------------------------------------------------ */
-            /*               LINK KSUP INTO LINKED LIST OF THE NEXT SUPERNODE */
-            /*               IT WILL UPDATE AND DECREMENT KSUP'S ACTIVE */
-            /*               LENGTH. */
-            /*               ------------------------------------------------ */
-            if (klen > ncolup) {
-                nxtsup = snode[nxtcol];
-                link[ksup] = link[nxtsup];
-                link[nxtsup] = ksup;
-                length[ksup] = klen - ncolup;
-            } else {
-                length[ksup] = 0;
-            }
-            
-            /*               ------------------------------- */
-            /*               NEXT UPDATING SUPERNODE (KSUP). */
-            /*               ------------------------------- */
-            ksup = nxksup;
-            goto L300;
-        }
-        
-        /*           ---------------------------------------------- */
-        /*           APPLY PARTIAL CHOLESKY TO THE COLUMNS OF JSUP. */
-        /*           ---------------------------------------------- */
-        chlsup(jlen, njcols, &split[fjcol], &xlnz[fjcol], &lnz[1], iflag);
-        if (iflag != 0) {
-            iflag = -1;
-            return;
-        }
-        
-        /*           ----------------------------------------------- */
-        /*           INSERT JSUP INTO LINKED LIST OF FIRST SUPERNODE */
-        /*           IT WILL UPDATE. */
-        /*           ----------------------------------------------- */
-        if (jlen > njcols) {
-            nxtcol = lindx[jxpnt + njcols];
-            nxtsup = snode[nxtcol];
-            link[jsup] = link[nxtsup];
-            link[nxtsup] = jsup;
-            length[jsup] = jlen - njcols;
-        } else {
-            length[jsup] = 0;
-        }
-    }
-} /* blkfc2 */
+            } /* blkfc2 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -4270,58 +4227,52 @@ void blkfc2(Index nsuper, Index *xsuper, Index *snode, Index *split,
 
 /* *********************************************************************** */
 
-template<typename Scalar, typename Index>
-void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split,
-            Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Scalar *diag,
-            Index iwsiz, Index *iwork, Index tmpsiz, Scalar *tmpvec,
-            Index &iflag) {
-    /* Parameter adjustments */
-    --diag;
-    --lnz;
-    --xlnz;
-    
-    /* Function Body */
-    iflag = 0;
-    if (iwsiz < (neqns << 1) + (nsuper << 1)) {
-        iflag = -3;
-        std::cerr << "\n";
-        std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
-        std::cerr << "*** IS SMALLER THAN REQUIRED = "
-        << (nsuper << 1) + (neqns << 1) << "\n";
-        std::cerr << "\n";
-        return;
-    }
-    iflag = 0;
-    if (iwsiz < (neqns << 1) + (nsuper << 1)) {
-        iflag = -3;
-        return;
-    }
-    
-    blkfc2(nsuper, xsuper, snode, split, xlindx, lindx,
-           &xlnz[1], &lnz[1], iwork, &iwork[nsuper],
-           &iwork[(nsuper << 1)], &iwork[(nsuper << 1) + neqns], tmpsiz,
-           tmpvec, iflag);
-    
-    if (iflag == -1) {
-        std::cerr << "\n";
-        std::cerr << "*** MATRIX IS SINGULAR ***\n";
-        std::cerr << "*** ZERO DIAGONAL ENTRY ENCOUNTERED ***\n";
-        std::cerr << "\n";
-        return;
-    } else if (iflag == -2) {
-        std::cerr << "\n";
-        std::cerr << "*** INSUFFICIENT WORK STORAGE [TMPVEC(*)] ***\n";
-        std::cerr << "\n";
-        return;
-    }
-    if (iflag == 0) {
-        for (Index jcol = 1; jcol <= neqns; ++jcol) {
-            diag[jcol] = lnz[xlnz[jcol]];
-        }
-    }
-} /* blkfct */
+            template<typename Scalar, typename Index>
+            void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split,
+                        Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Scalar *diag,
+                        Index iwsiz, Index *iwork, Index tmpsiz, Scalar *tmpvec,
+                        Index &iflag) {
+                iflag = 0;
+                if (iwsiz < (neqns << 1) + (nsuper << 1)) {
+                    iflag = -3;
+                    std::cerr << "\n";
+                    std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
+                    std::cerr << "*** IS SMALLER THAN REQUIRED = "
+                              << (nsuper << 1) + (neqns << 1) << "\n";
+                    std::cerr << "\n";
+                    return;
+                }
+                iflag = 0;
+                if (iwsiz < (neqns << 1) + (nsuper << 1)) {
+                    iflag = -3;
+                    return;
+                }
 
-} // namespace f2c
+                blkfc2(nsuper, xsuper, snode, split, xlindx, lindx,
+                       xlnz, lnz, iwork, &iwork[nsuper],
+                       &iwork[(nsuper << 1)], &iwork[(nsuper << 1) + neqns], tmpsiz,
+                       tmpvec, iflag);
+
+                if (iflag == -1) {
+                    std::cerr << "\n";
+                    std::cerr << "*** MATRIX IS SINGULAR ***\n";
+                    std::cerr << "*** ZERO DIAGONAL ENTRY ENCOUNTERED ***\n";
+                    std::cerr << "\n";
+                    return;
+                } else if (iflag == -2) {
+                    std::cerr << "\n";
+                    std::cerr << "*** INSUFFICIENT WORK STORAGE [TMPVEC(*)] ***\n";
+                    std::cerr << "\n";
+                    return;
+                }
+                if (iflag == 0) {
+                    for (Index jcol = 0; jcol < neqns; ++jcol) {
+                        diag[jcol] = lnz[xlnz[jcol] - 1];
+                    }
+                }
+            } /* blkfct */
+
+        } // namespace f2c
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -4403,23 +4354,23 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
             /*       COMPUTE ELIMINATION TREE AND POSTORDERING. */
             /*       ------------------------------------------ */
             f2c::etordr(neqns, xadj, adjncy, perm, invp, iwork,
-                   &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
+                        &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
 
             /*       --------------------------------------------- */
             /*       COMPUTE ROW AND COLUMN FACTOR NONZERO COUNTS. */
             /*       --------------------------------------------- */
             f2c::fcnthn(neqns, xadj, adjncy, perm, invp, iwork,
-                   snode, colcnt, nnzl, &iwork[neqns],
-                   &iwork[(neqns << 1)], xsuper, &iwork[neqns * 3],
-                   &iwork[(neqns << 2) + 1], &iwork[neqns * 5 + 2],
-                   &iwork[neqns * 6 + 3]);
+                        snode, colcnt, nnzl, &iwork[neqns],
+                        &iwork[(neqns << 1)], xsuper, &iwork[neqns * 3],
+                        &iwork[(neqns << 2) + 1], &iwork[neqns * 5 + 2],
+                        &iwork[neqns * 6 + 3]);
 
             /*       --------------------------------------------------------- */
             /*       REARRANGE CHILDREN SO THAT THE LAST CHILD HAS THE MAXIMUM */
             /*       NUMBER OF NONZEROS IN ITS COLUMN OF L. */
             /*       --------------------------------------------------------- */
             f2c::chordr(neqns, xadj, adjncy, perm, invp, colcnt, iwork,
-                   &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
+                        &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
 
             /*       ---------------- */
             /*       FIND SUPERNODES. */
@@ -4550,15 +4501,15 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
         Multiple Minimum Degree
        ------------------------ */
             details::f2c::ordmmd<int>(n, &xadj2[0], &adj2[0], &factor->invp[0],
-                                 &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
-                                 factor->nsub, &factor->colcnt[0], factor->nsuper,
-                                 &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+                                      &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
+                                      factor->nsub, &factor->colcnt[0], factor->nsuper,
+                                      &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
         } else if (order_ == 1) {
             printf(" AMD not implemented yet, use MMD !\n");
             details::f2c::ordmmd<int>(n, &xadj2[0], &adj2[0], &factor->invp[0],
-                                 &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
-                                 factor->nsub, &factor->colcnt[0], factor->nsuper,
-                                 &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+                                      &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
+                                      factor->nsub, &factor->colcnt[0], factor->nsuper,
+                                      &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
         }
 #ifdef METIS
                                                                                                                                     else if (order_ == 2) {
@@ -4602,9 +4553,9 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
         xadj2.clear();
         adj2.clear();
 
-            /* ----------------------
-     Symbolic factorization
-     ---------------------- */
+        /* ----------------------
+ Symbolic factorization
+ ---------------------- */
         if (order_ >= 0 && order_ <= 3) {
             /* not needed when MMD has been called */
             for (i = 0; i < iwsiz; i++)
@@ -4624,10 +4575,10 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
             iwork[i] = 0;
 
         details::f2c::symfct(n, nnza, &xadj[0], &adj[0],
-                        &factor->perm[0], &factor->invp[0], &factor->colcnt[0],
-                        factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
-                        factor->nsub, &factor->xlindx[0], &factor->lindx[0],
-                        &factor->xlnz[0], iwsiz, &iwork[0], iflag);
+                             &factor->perm[0], &factor->invp[0], &factor->colcnt[0],
+                             factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
+                             factor->nsub, &factor->xlindx[0], &factor->lindx[0],
+                             &factor->xlnz[0], iwsiz, &iwork[0], iflag);
 
         /* ---------------------------
      Prepare for Numerical factorization
@@ -4638,8 +4589,8 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
 
         int cachsz_ = 700;
         details::f2c::bfinit(n, factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
-                        &factor->xlindx[0], &factor->lindx[0], cachsz_, factor->tmpsiz,
-                        &factor->split[0]);
+                             &factor->xlindx[0], &factor->lindx[0], cachsz_, factor->tmpsiz,
+                             &factor->split[0]);
 
     }
 
@@ -4683,28 +4634,25 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
         myMat.newrhs.resize(neqns);
 
         if (fullrep) {
-            for (i = 0; i < neqns + 1; i++)
-                xadj[i] = colptr_[i];
-            for (i = 0; i < nnz; i++)
-                adj[i] = rowind_[i];
-            for (i = 0; i < nnz; i++)
-                anz[i] = nzvals_[i];
+            std::copy(colptr_, colptr_ + neqns + 1, xadj.data());
+            std::copy(rowind_, rowind_ + nnz, adj.data());
+            std::copy(nzvals_, nzvals_ + nnz, anz.data());
         } else {
             details::f2c::flo2ho(neqns, colptr_, rowind_, nzvals_, &xadj[0], &adj[0],
-                            &anz[0], &iwork[0]);
+                                 &anz[0], &iwork[0]);
         }
 
         details::f2c::inpnv(neqns, &xadj[0], &adj[0], &anz[0],
-                        &myMat.perm[0], &myMat.invp[0], myMat.nsuper,
-                        &myMat.xsuper[0], &myMat.xlindx[0], &myMat.lindx[0],
-                        &myMat.xlnz[0], &myMat.lnz[0], iwsiz, &iwork[0], iflag);
+                            &myMat.perm[0], &myMat.invp[0], myMat.nsuper,
+                            &myMat.xsuper[0], &myMat.xlindx[0], &myMat.lindx[0],
+                            &myMat.xlnz[0], &myMat.lnz[0], iwsiz, &iwork[0], iflag);
 
         myMat.tmat.assign(tmpsiz, 0);
 
         details::f2c::blkfct(neqns, nsuper, &myMat.xsuper[0], &myMat.snodes[0],
-                        &myMat.split[0], &myMat.xlindx[0], &myMat.lindx[0],
-                        &myMat.xlnz[0], &myMat.lnz[0], &myMat.diag[0], iwsiz,
-                        &iwork[0], tmpsiz, &myMat.tmat[0], iflag);
+                             &myMat.split[0], &myMat.xlindx[0], &myMat.lindx[0],
+                             &myMat.xlnz[0], &myMat.lnz[0], &myMat.diag[0], iwsiz,
+                             &iwork[0], tmpsiz, &myMat.tmat[0], iflag);
 
     }
 
@@ -4716,19 +4664,17 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
             exit(-1);
         }
 
-        int nsuper = factor->nsuper;
-        const auto perm = factor->perm;
-        const auto invp = factor->invp;
+        const auto perm_f = factor->perm;
         auto &newrhs = factor->newrhs;
-
         for (int i = 0; i < n; i++)
-            newrhs[i] = rhs[perm[i] - 1];
+            newrhs[i] = rhs[perm_f[i] - 1];
 
-        details::f2c::blkslv(nsuper, &factor->xsuper[0], &factor->xlindx[0], &factor->lindx[0],
-                         &factor->xlnz[0], &factor->lnz[0], &factor->newrhs[0]);
+        details::f2c::blkslv(factor->nsuper, factor->xsuper.data(), factor->xlindx.data(), factor->lindx.data(),
+                             factor->xlnz.data(), factor->lnz.data(), factor->newrhs.data());
 
+        const auto invp_f = factor->invp;
         for (int i = 0; i < n; i++)
-            x[i] = newrhs[invp[i] - 1];
+            x[i] = newrhs[invp_f[i] - 1];
     }
 
 } // namespace NgPeytonCpp
