@@ -1,6 +1,7 @@
 Language: Cpp
 ColumnLimit: 80
 UseTab: Never
+BasedOnStyle: Google
 
 AccessModifierOffset: -2
 AlignAfterOpenBracket: AlwaysBreak
@@ -89,4 +90,4 @@ SpacesInConditionalStatement: false
 SpacesInContainerLiterals: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard: c++14
+Standard: c++11

@@ -21,6 +21,8 @@ namespace NgPeytonCpp {
 
     namespace details {
 
+        namespace f2c {
+
 /* *********************************************************************** */
 /* *********************************************************************** */
 
@@ -57,26 +59,26 @@ namespace NgPeytonCpp {
 
 /* *********************************************************************** */
 
-        template<typename Scalar, typename Index>
-        void assmb(Index m, Index q, Scalar *y, Index *relind, Index *xlnz,
-                   Scalar *lnz, Index lda) {
-            /* Local variables */
-            Index ir, il1, iy1, icol, ycol, lbot1, yoff1;
+            template<typename Scalar, typename Index>
+            void assmb(Index m, Index q, Scalar *y, Index *relind, Index *xlnz,
+                       Scalar *lnz, Index lda) {
+                /* Local variables */
+                Index ir, il1, iy1, icol, ycol, lbot1, yoff1;
 
-            yoff1 = 0;
-            for (icol = 1; icol <= q; ++icol) {
-                ycol = lda - relind[icol - 1];
-                lbot1 = xlnz[ycol] - 1;
-                for (ir = icol; ir <= m; ++ir) {
-                    il1 = lbot1 - relind[ir - 1];
-                    iy1 = yoff1 + ir;
-                    lnz[il1 - 1] += y[iy1 - 1];
-                    y[iy1 - 1] = static_cast<Scalar>(0);
+                yoff1 = 0;
+                for (icol = 1; icol <= q; ++icol) {
+                    ycol = lda - relind[icol - 1];
+                    lbot1 = xlnz[ycol] - 1;
+                    for (ir = icol; ir <= m; ++ir) {
+                        il1 = lbot1 - relind[ir - 1];
+                        iy1 = yoff1 + ir;
+                        lnz[il1 - 1] += y[iy1 - 1];
+                        y[iy1 - 1] = static_cast<Scalar>(0);
+                    }
+                    yoff1 = iy1 - icol;
                 }
-                yoff1 = iy1 - icol;
-            }
 
-        } /* assmb */
+            } /* assmb */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -116,21 +118,21 @@ namespace NgPeytonCpp {
 
 /* *********************************************************************** */
 
-        template<typename Index>
-        void invinv(Index neqns, Index *invp, const Index *invp2, Index *perm) {
-            /* Local variables */
-            Index i, node, interm;
-            for (i = 0; i < neqns; ++i) {
-                interm = invp[i];
-                invp[i] = invp2[interm - 1];
-            }
+            template<typename Index>
+            void invinv(Index neqns, Index *invp, const Index *invp2, Index *perm) {
+                /* Local variables */
+                Index i, node, interm;
+                for (i = 0; i < neqns; ++i) {
+                    interm = invp[i];
+                    invp[i] = invp2[interm - 1];
+                }
 
-            for (i = 0; i < neqns; ++i) {
-                node = invp[i] - 1;
-                perm[node] = i + 1;
-            }
+                for (i = 0; i < neqns; ++i) {
+                    node = invp[i] - 1;
+                    perm[node] = i + 1;
+                }
 
-        } /* invinv */
+            } /* invinv */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -175,23 +177,23 @@ namespace NgPeytonCpp {
 
 /* *********************************************************************** */
 
-        template<typename Index>
-        void fsup2(Index neqns, Index nsuper, const Index *snode,
-                   Index *xsuper) {
-            Index kcol, ksup, lstsup;
-            /*       ------------------------------------------------- */
-            /*       COMPUTE THE SUPERNODE PARTITION VECTOR XSUPER(*). */
-            /*       ------------------------------------------------- */
-            lstsup = nsuper + 1;
-            for (kcol = neqns; kcol >= 1; --kcol) {
-                ksup = snode[kcol - 1];
-                if (ksup != lstsup) {
-                    xsuper[lstsup - 1] = kcol + 1;
+            template<typename Index>
+            void fsup2(Index neqns, Index nsuper, const Index *snode,
+                       Index *xsuper) {
+                Index kcol, ksup, lstsup;
+                /*       ------------------------------------------------- */
+                /*       COMPUTE THE SUPERNODE PARTITION VECTOR XSUPER(*). */
+                /*       ------------------------------------------------- */
+                lstsup = nsuper + 1;
+                for (kcol = neqns; kcol >= 1; --kcol) {
+                    ksup = snode[kcol - 1];
+                    if (ksup != lstsup) {
+                        xsuper[lstsup - 1] = kcol + 1;
+                    }
+                    lstsup = ksup;
                 }
-                lstsup = ksup;
-            }
-            xsuper[0] = 1;
-        } /* fsup2 */
+                xsuper[0] = 1;
+            } /* fsup2 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -240,29 +242,27 @@ namespace NgPeytonCpp {
 
 /* *********************************************************************** */
 
-        template<typename Index>
-        void fsup1(Index neqns, const Index *etpar, const Index *colcnt,
-                   Index &nofsub, Index &nsuper, Index *snode) {
-            /*       -------------------------------------------- */
-            /*       COMPUTE THE FUNDAMENTAL SUPERNODE PARTITION. */
-            /*       -------------------------------------------- */
-            nsuper = 1;
-            snode[0] = 1;
-            nofsub = colcnt[0];
-            for (Index kcol = 1; kcol < neqns; ++kcol) {
-                if (etpar[kcol - 1] == kcol + 1) {
-                    if (colcnt[kcol - 1] == colcnt[kcol] + 1) {
-                        snode[kcol] = nsuper;
-                        continue;
+            template<typename Index>
+            void fsup1(Index neqns, const Index *etpar, const Index *colcnt,
+                       Index &nofsub, Index &nsuper, Index *snode) {
+                /*       -------------------------------------------- */
+                /*       COMPUTE THE FUNDAMENTAL SUPERNODE PARTITION. */
+                /*       -------------------------------------------- */
+                nsuper = 1;
+                snode[0] = 1;
+                nofsub = colcnt[0];
+                for (Index kcol = 1; kcol < neqns; ++kcol) {
+                    if (etpar[kcol - 1] == kcol + 1) {
+                        if (colcnt[kcol - 1] == colcnt[kcol] + 1) {
+                            snode[kcol] = nsuper;
+                            continue;
+                        }
                     }
+                    ++nsuper;
+                    snode[kcol] = nsuper;
+                    nofsub += colcnt[kcol];
                 }
-                ++nsuper;
-                snode[kcol] = nsuper;
-                nofsub += colcnt[kcol];
-            }
-        } /* fsup1 */
-
-        namespace f2c {
+            } /* fsup1 */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -4375,8 +4375,8 @@ namespace NgPeytonCpp {
             /*       ---------------- */
             /*       FIND SUPERNODES. */
             /*       ---------------- */
-            fsup1(neqns, iwork, colcnt, nsub, nsuper, snode);
-            fsup2(neqns, nsuper, snode, xsuper);
+            f2c::fsup1(neqns, iwork, colcnt, nsub, nsuper, snode);
+            f2c::fsup2(neqns, nsuper, snode, xsuper);
         } /* sfinit */
 
     } // namespace details
@@ -4385,15 +4385,15 @@ namespace NgPeytonCpp {
 // Definition of templated functions for class SymmetricSparse
 //
 
-    template<typename Scalar>
-    SymmetricSparse<Scalar>::SymmetricSparse(int n_,
-                                             const int *colptr_, const int *rowind_,
-                                             const int order_, const int *perm_) {
+    template<typename Scalar, typename Index>
+    SymmetricSparse<Scalar, Index>::SymmetricSparse(Index n_,
+                                                    const Index *colptr_, const Index *rowind_,
+                                                    const Index order_, const Index *perm_) {
 
-        int nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, j = 0, iwsiz = 0,
+        Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, j = 0, iwsiz = 0,
                 iflag = 0;
         bool sfiflg = true, notfound = true;
-        int pjend = 0, pibeg = 0, irow = 0, jcol = 0;
+        Index pjend = 0, pibeg = 0, irow = 0, jcol = 0;
 
         n = n_;
         nnz = colptr_[n] - 1;
@@ -4479,13 +4479,13 @@ namespace NgPeytonCpp {
      we need to make an extra copy of the indices and pointers
      of the full representation of the original matrix.  */
 
-        std::vector<int> adj2(adj), xadj2(xadj);
+        std::vector<Index> adj2(adj), xadj2(xadj);
 
         /* ----------------------------------------
      Allocate storage for supernode partition
      ----------------------------------------*/
 
-        factor = std::unique_ptr<LDLt_factor < Scalar> > (new LDLt_factor<Scalar>());
+        factor = std::unique_ptr<LDLt_factor < Scalar, Index> > (new LDLt_factor<Scalar, Index>());
         factor->snodes.resize(n);
         factor->xsuper.resize(n + 1);
         factor->colcnt.resize(n);
@@ -4500,16 +4500,16 @@ namespace NgPeytonCpp {
             /* ------------------------
         Multiple Minimum Degree
        ------------------------ */
-            details::f2c::ordmmd<int>(n, &xadj2[0], &adj2[0], &factor->invp[0],
-                                      &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
-                                      factor->nsub, &factor->colcnt[0], factor->nsuper,
-                                      &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+            details::f2c::ordmmd<Index>(n, &xadj2[0], &adj2[0], &factor->invp[0],
+                                        &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
+                                        factor->nsub, &factor->colcnt[0], factor->nsuper,
+                                        &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
         } else if (order_ == 1) {
             printf(" AMD not implemented yet, use MMD !\n");
-            details::f2c::ordmmd<int>(n, &xadj2[0], &adj2[0], &factor->invp[0],
-                                      &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
-                                      factor->nsub, &factor->colcnt[0], factor->nsuper,
-                                      &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+            details::f2c::ordmmd<Index>(n, &xadj2[0], &adj2[0], &factor->invp[0],
+                                        &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
+                                        factor->nsub, &factor->colcnt[0], factor->nsuper,
+                                        &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
         }
 #ifdef METIS
                                                                                                                                     else if (order_ == 2) {
@@ -4587,7 +4587,7 @@ namespace NgPeytonCpp {
 
         factor->split.resize(n);
 
-        int cachsz_ = 700;
+        Index cachsz_ = 700;
         details::f2c::bfinit(n, factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
                              &factor->xlindx[0], &factor->lindx[0], cachsz_, factor->tmpsiz,
                              &factor->split[0]);
@@ -4598,11 +4598,10 @@ namespace NgPeytonCpp {
 /// colptr_ Array of size 'neqns + 1' for pointing entries of column
 /// rowind_ Array of size 'nnz + 1' for indicating row indices
 /// nzvals_
-    template<typename Scalar>
-    template<typename Index>
-    void SymmetricSparse<Scalar>::ldlTFactorize(const Index *colptr_,
-                                                const Index *rowind_,
-                                                const Scalar *nzvals_) {
+    template<typename Scalar, typename Index>
+    void SymmetricSparse<Scalar, Index>::ldlTFactorize(const Index *colptr_,
+                                                       const Index *rowind_,
+                                                       const Scalar *nzvals_) {
         // Assume that rowind[*] is 1-based
         // Same for colptr
         Index i, nnz, nnzl, neqns, nsuper, tmpsiz, iflag, iwsiz;
@@ -4656,8 +4655,8 @@ namespace NgPeytonCpp {
 
     }
 
-    template<typename Scalar>
-    void SymmetricSparse<Scalar>::solve(const Scalar *rhs, Scalar *x) {
+    template<typename Scalar, typename Index>
+    void SymmetricSparse<Scalar, Index>::solve(const Scalar *rhs, Scalar *x) {
 
         if (factor == nullptr) {
             std::cerr << "\n !! Error -- Needs to call factorization first !! \n\n";
@@ -4666,7 +4665,7 @@ namespace NgPeytonCpp {
 
         const auto perm_f = factor->perm;
         auto &newrhs = factor->newrhs;
-        for (int i = 0; i < n; i++)
+        for (Index i = 0; i < n; i++)
             newrhs[i] = rhs[perm_f[i] - 1];
 
         details::f2c::blkslv(factor->nsuper, factor->xsuper.data(), factor->xlindx.data(), factor->lindx.data(),

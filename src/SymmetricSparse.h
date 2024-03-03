@@ -6,79 +6,80 @@
 
 namespace NgPeytonCpp {
 
-template <typename Scalar> class SymmetricSparse {
+    template<typename Scalar, typename Index = int>
+    class SymmetricSparse {
 
-public:
+    public:
 
-  /// \brief Remove default constructor
-  SymmetricSparse() = delete;
+        /// \brief Remove default constructor
+        SymmetricSparse() = delete;
 
-  /// \brief Constructor
-  ///
-  /// \param n_
-  /// \param colptr_
-  /// \param rowind_
-  /// \param order_
-  /// \param perm_ User-provided permutation array
-  SymmetricSparse(int n_, const int *colptr_, const int *rowind_,
-                  int order_, const int *perm_ = nullptr);
+        /// \brief Constructor
+        ///
+        /// \param n_
+        /// \param colptr_
+        /// \param rowind_
+        /// \param order_
+        /// \param perm_ User-provided permutation array
+        SymmetricSparse(Index n_, const Index *colptr_, const Index *rowind_,
+                        Index order_, const Index *perm_ = nullptr);
 
-  /// \brief Default destructor
-  ~SymmetricSparse() = default;
+        /// \brief Default destructor
+        ~SymmetricSparse() = default;
 
-  /// \brief Factorize
-  ///
-  /// \tparam Index
-  /// \param colptr_
-  /// \param rowind_
-  /// \param nzvals_
-  template <typename Index>
-  void ldlTFactorize(const Index *colptr_, const Index *rowind_,
-                     const Scalar *nzvals_);
+        /// \brief Factorize
+        ///
+        /// \tparam Index
+        /// \param colptr_
+        /// \param rowind_
+        /// \param nzvals_
+        void ldlTFactorize(const Index *colptr_, const Index *rowind_,
+                           const Scalar *nzvals_);
 
-  /// \brief Solve
-  ///
-  /// \param x
-  /// \param rhs
-  void solve(const Scalar *rhs, Scalar *x);
+        /// \brief Solve
+        ///
+        /// \param x
+        /// \param rhs
+        void solve(const Scalar *rhs, Scalar *x);
 
-protected:
+    protected:
 
-  template <typename Value> class LDLt_factor {
-  public:
-    int nsuper = 0;
-    int nsub = 0;
-    int nnzl = 0;
-    std::vector<int> xsuper;
-    std::vector<int> snodes;
-    std::vector<int> xlindx;
-    std::vector<int> lindx;
-    std::vector<int> xlnz;
-    std::vector<Value> lnz;
-    std::vector<Value> diag;
-    std::vector<Value> tmat;
-    std::vector<int> perm;
-    std::vector<int> invp;
-    std::vector<int> colcnt;
-    int tmpsiz = 0;
-    std::vector<int> split;
-    std::vector<Scalar> newrhs;
-  };
+        template<typename Value, typename Idx>
+        class LDLt_factor {
+        public:
+            Idx nsuper = 0;
+            Idx nsub = 0;
+            Idx nnzl = 0;
+            std::vector<Idx> xsuper;
+            std::vector<Idx> snodes;
+            std::vector<Idx> xlindx;
+            std::vector<Idx> lindx;
+            std::vector<Idx> xlnz;
+            std::vector<Value> lnz;
+            std::vector<Value> diag;
+            std::vector<Value> tmat;
+            std::vector<Idx> perm;
+            std::vector<Idx> invp;
+            std::vector<Idx> colcnt;
+            Idx tmpsiz = 0;
+            std::vector<Idx> split;
+            std::vector<Scalar> newrhs;
+        };
 
-  int n = 0;
-  bool fullrep = false;
-  std::vector<int> xadj;
-  std::vector<int> adj;
-  std::vector<Scalar> anz;
-  std::vector<int> iwork;
+        Index n = 0;
+        bool fullrep = false;
+        std::vector<Index> xadj;
+        std::vector<Index> adj;
+        std::vector<Scalar> anz;
+        std::vector<Index> iwork;
 
-  std::unique_ptr<LDLt_factor<Scalar>> factor = nullptr;
+        std::unique_ptr<LDLt_factor<Scalar, Index>> factor = nullptr;
 
-  //
-  // Protected member functions
-  //
+        //
+        // Protected member functions
+        //
 
-};
+    };
 
 }
 
