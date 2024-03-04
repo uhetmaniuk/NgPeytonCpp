@@ -120,7 +120,6 @@ namespace NgPeytonCpp {
 
             template<typename Index>
             void invinv(Index neqns, Index *invp, const Index *invp2, Index *perm) {
-                /* Local variables */
                 Index i, node, interm;
                 for (i = 0; i < neqns; ++i) {
                     interm = invp[i];
@@ -320,7 +319,6 @@ namespace NgPeytonCpp {
                 --brothr;
                 --fson;
 
-                /* Function Body */
                 num = 0;
                 itop = 0;
                 node = root;
@@ -431,9 +429,7 @@ namespace NgPeytonCpp {
             template<typename Index>
             void btree2(Index neqns, const Index *parent, const Index *colcnt, Index *fson,
                         Index *brothr, Index *lson) {
-                /* Local variables */
                 Index node, ndpar, lroot, ndlson;
-
                 if (neqns <= 0) {
                     return;
                 }
@@ -616,7 +612,6 @@ namespace NgPeytonCpp {
                 /* Parameter adjustments */
                 --invpos;
 
-                /* Function Body */
                 num = 0;
                 itop = 0;
                 node = root;
@@ -712,7 +707,6 @@ namespace NgPeytonCpp {
                 /* Local variables */
                 Index node, ndpar, lroot;
 
-                /* Function Body */
                 if (neqns <= 0) {
                     return;
                 }
@@ -1047,7 +1041,6 @@ namespace NgPeytonCpp {
                 --snode;
                 --xsuper;
 
-                /* Function Body */
                 tmpsiz = 0;
                 for (ksup = nsuper; ksup >= 1; --ksup) {
                     ncols = xsuper[ksup + 1] - xsuper[ksup];
@@ -1495,7 +1488,6 @@ namespace NgPeytonCpp {
                         Index *relind) {
                 /* Parameter adjustments */
                 --indmap;
-                /* Function Body */
                 for (Index i = 0; i < klen; ++i) {
                     relind[i] = indmap[lindx[i]];
                 }
@@ -1522,13 +1514,8 @@ namespace NgPeytonCpp {
                        Index *perm, Index *invp, Index nsuper, Index *xsuper,
                        Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Index iwsiz,
                        Index *offset, Index &iflag) {
-                /* System generated locals */
-                Index i__4;
-
-                /* Local variables */
                 Index i, j, ii, jlen, oldj, last, jsuper;
 
-                /* Function Body */
                 iflag = 0;
                 if (iwsiz < neqns) {
                     iflag = -1;
@@ -1585,8 +1572,7 @@ namespace NgPeytonCpp {
                         for (ii = xadjf[oldj]; ii < xadjf[oldj + 1]; ++ii) {
                             i = invp[adjf[ii]];
                             if (i >= j) {
-                                i__4 = last - offset[i];
-                                lnz[i__4] = anzf[ii];
+                                lnz[last - offset[i]] = anzf[ii];
                             }
                         }
                     }
@@ -1870,7 +1856,6 @@ namespace NgPeytonCpp {
                 --adjncy;
                 --xadj;
 
-                /* Function Body */
                 mdeg0 = mdeg + delta;
                 elmnt = ehead;
                 L100:
@@ -2191,7 +2176,6 @@ namespace NgPeytonCpp {
                 --dhead;
                 --xadj;
 
-                /* Function Body */
                 for (node = 1; node <= neqns; ++node) {
                     dhead[node] = 0;
                     qsize[node] = 1;
@@ -2276,7 +2260,6 @@ namespace NgPeytonCpp {
                 --adjncy;
                 --xadj;
 
-                /* Function Body */
                 marker[mdnode] = tag;
                 istrt = xadj[mdnode];
                 istop = xadj[mdnode + 1] - 1;
@@ -2503,7 +2486,6 @@ namespace NgPeytonCpp {
                 --invp;
                 --perm;
 
-                /* Function Body */
                 for (node = 1; node <= neqns; ++node) {
                     nqsize = qsize[node];
                     if (nqsize <= 0) {
@@ -3010,7 +2992,6 @@ namespace NgPeytonCpp {
                 --xsuper;
                 --lindx;
 
-                /* Function Body */
                 flag = 0;
                 if (neqns <= 0) {
                     return 0;
@@ -3358,7 +3339,6 @@ namespace NgPeytonCpp {
                 --y;
                 --a;
 
-                /* Function Body */
                 for (j = 0; j < n; ++j) {
                     jj = apnt[j];
                     ii = apnt[j + 1] - m;
@@ -3582,7 +3562,6 @@ namespace NgPeytonCpp {
                 --xpnt;
                 --split;
 
-                /* Function Body */
                 jblk = 0;
                 fstcol = 1;
                 mm = m;
@@ -3709,7 +3688,6 @@ namespace NgPeytonCpp {
             template<typename Scalar, typename Index>
             void mmpyi(Index m, Index q, Index *xpnt, Scalar *x, Scalar d, Index *iy,
                        Scalar *y, Index *relind) {
-                /* Local variables */
                 Scalar a, z1, z2;
                 Index i, k, col, isub, ylast;
 
@@ -3720,7 +3698,6 @@ namespace NgPeytonCpp {
                 --x;
                 --xpnt;
 
-                /* Function Body */
                 for (k = 1; k <= q; ++k) {
                     col = xpnt[k];
                     ylast = iy[col + 1] - 1;
@@ -3770,8 +3747,6 @@ namespace NgPeytonCpp {
             template<typename Scalar, typename Index>
             void blkslv(Index nsuper, Index *xsuper, Index *xlindx, Index *lindx,
                         Index *xlnz, Scalar *lnz, Scalar *rhs) {
-
-                /* Local variables */
                 Index i;
                 Scalar t, z1, z2;
                 Index ix, jcol, ipnt, jpnt, jsup, fjcol, ljcol, ixstop, ixstrt;
@@ -3929,7 +3904,6 @@ namespace NgPeytonCpp {
                 --snode;
                 --xsuper;
 
-                /* Function Body */
                 iflag = 0;
 
                 /*       ----------------------------------------------------------- */
@@ -4365,16 +4339,16 @@ namespace NgPeytonCpp {
                         &iwork[(neqns << 2) + 1], &iwork[neqns * 5 + 2],
                         &iwork[neqns * 6 + 3]);
 
-            /*       --------------------------------------------------------- */
-            /*       REARRANGE CHILDREN SO THAT THE LAST CHILD HAS THE MAXIMUM */
-            /*       NUMBER OF NONZEROS IN ITS COLUMN OF L. */
-            /*       --------------------------------------------------------- */
+            //       ---------------------------------------------------------
+            //       REARRANGE CHILDREN SO THAT THE LAST CHILD HAS THE MAXIMUM
+            //       NUMBER OF NONZEROS IN ITS COLUMN OF L.
+            //       ---------------------------------------------------------
             f2c::chordr(neqns, xadj, adjncy, perm, invp, colcnt, iwork,
                         &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
 
-            /*       ---------------- */
-            /*       FIND SUPERNODES. */
-            /*       ---------------- */
+            //       ----------------
+            //       FIND SUPERNODES.
+            //       ----------------
             f2c::fsup1(neqns, iwork, colcnt, nsub, nsuper, snode);
             f2c::fsup2(neqns, nsuper, snode, xsuper);
         } /* sfinit */
@@ -4388,6 +4362,7 @@ namespace NgPeytonCpp {
     template<typename Scalar, typename Index>
     SymmetricSparse<Scalar, Index>::SymmetricSparse(Index n_,
                                                     const Index *colptr_, const Index *rowind_,
+                                                    const Scalar *nzvals_,
                                                     const Index order_, const Index *perm_) {
 
         Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, j = 0, iwsiz = 0,
@@ -4396,24 +4371,22 @@ namespace NgPeytonCpp {
         Index pjend = 0, pibeg = 0, irow = 0, jcol = 0;
 
         n = n_;
-        nnz = colptr_[n] - 1;
+        nnz = colptr_[n];
 
-        /* Check to see whether a full representation the symmetric
-     matrix is used */
-        j = 1;
+        // Check to see whether a full representation the symmetric matrix is used
+        j = 0;
         while (notfound && j < n) {
             /* pointer to the last entry of column j */
-            pjend = colptr_[j] - 1;
+            pjend = colptr_[j];
             if (pjend >= colptr_[j - 1]) {
-                /* there is at least one off-diagonal entry,
-         find its row index */
-                irow = rowind_[pjend - 1];
+                /* there is at least one off-diagonal entry, find its row index */
+                irow = rowind_[pjend]; // 0-based indices
 
                 /* get column pointer to the first entry of irow-th column */
-                pibeg = colptr_[irow - 1];
+                pibeg = colptr_[irow];
 
                 /* check to see if upper triangular part is present */
-                if (rowind_[pibeg - 1] != irow) {
+                if (rowind_[pibeg] != irow) {
                     fullrep = true;
                 }
                 notfound = false;
@@ -4425,28 +4398,27 @@ namespace NgPeytonCpp {
         nnza = (fullrep) ? nnz - n : 2 * (nnz - n);
         iwsiz = 7 * n + 3;
 
-        /* --------------------------------------------------
-        Allocate matrix storage required for reordering
-        and symbolic factorization.
-     -------------------------------------------------- */
+        // --------------------------------------------------
+        // Allocate matrix storage required for reordering
+        // and symbolic factorization.
+        // --------------------------------------------------
 
-        /* adj, xadj contain the structure of the
-     full representation of the original matrix */
+        // adj, xadj contain the structure of the
+        // full representation of the original matrix
 
         xadj.resize(n + 1);
         adj.resize(nnza + n);
 
-        /* ----------------------------------------------------------
-     convert the indices and pointers of the lower triangular
-     representation of a symmetric HB matrix to its full
-     representation.
-     ---------------------------------------------------------- */
+        // ----------------------------------------------------------
+        // convert the indices and pointers of the lower triangular
+        // representation of a symmetric HB matrix to its full
+        // representation.
+        // ----------------------------------------------------------
 
         iwork.resize(iwsiz);
 
         if (fullrep) {
-            /* make a copy of the non-zero structure, take out the
-       diagonals */
+            /* make a copy of the non-zero structure, take out the diagonals */
             xadj[0] = 1;
             for (i = 0; i < n; i++) {
                 xadj[i + 1] = xadj[i] + (colptr_[i + 1] - colptr_[i] - 1);
@@ -4456,34 +4428,43 @@ namespace NgPeytonCpp {
             }
 
             i = 0;
-            for (jcol = 1; jcol <= n; jcol++) {
-                ibegin = colptr_[jcol - 1];
-                iend = colptr_[jcol] - 1;
-                for (irow = ibegin; irow <= iend; irow++) {
-                    if (rowind_[irow - 1] != jcol) {
-                        adj[i] = rowind_[irow - 1];
+            for (jcol = 0; jcol < n; jcol++) {
+                ibegin = colptr_[jcol];
+                iend = colptr_[jcol + 1];
+                for (irow = ibegin; irow < iend; irow++) {
+                    if (rowind_[irow] != jcol) {
+                        adj[i] = rowind_[irow] + 1; // adj[*] has 1-based indices
                         i++;
                     }
                 }
             }
         } else {
             /* convert */
-            details::f2c::ilo2ho(n, nnza, colptr_, rowind_, &xadj[0], &adj[0], &iwork[0]);
+            std::cout << " call ilo2ho \n";
+            std::vector<Index> f_colptr(n + 1), f_rowind(nnz);
+            for (Index i = 0; i <= n; ++i) {
+                f_colptr[i] = colptr_[i] + 1;  // this is C-to-Fortran
+            }
+            for (Index i = 0; i < nnz; ++i) {
+                f_rowind[i] = rowind_[i] + 1;  // this is C-to-Fortran
+            }
+            details::f2c::ilo2ho(n, nnza, f_colptr.data(), f_rowind.data(),
+                                 xadj.data(), adj.data(), iwork.data());
         }
 
-        /* -------------------------------------------------
-     Make a copy of the converted matrix for reordering
-     ------------------------------------------------- */
+        // -------------------------------------------------
+        // Make a copy of the converted matrix for reordering
+        // -------------------------------------------------
 
-        /* Since reordering will destroy the original matrix
-     we need to make an extra copy of the indices and pointers
-     of the full representation of the original matrix.  */
+        // Since reordering will destroy the original matrix
+        // we need to make an extra copy of the indices and pointers
+        // of the full representation of the original matrix.
 
         std::vector<Index> adj2(adj), xadj2(xadj);
 
-        /* ----------------------------------------
-     Allocate storage for supernode partition
-     ----------------------------------------*/
+        // ----------------------------------------
+        // Allocate storage for supernode partition
+        // ----------------------------------------
 
         factor = std::unique_ptr<LDLt_factor < Scalar, Index> > (new LDLt_factor<Scalar, Index>());
         factor->snodes.resize(n);
@@ -4497,9 +4478,9 @@ namespace NgPeytonCpp {
 #else
         if (order_ < 0 || order_ > 1) {
 #endif
-            /* ------------------------
-        Multiple Minimum Degree
-       ------------------------ */
+            // ------------------------
+            // Multiple Minimum Degree
+            // ------------------------
             details::f2c::ordmmd<Index>(n, &xadj2[0], &adj2[0], &factor->invp[0],
                                         &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
                                         factor->nsub, &factor->colcnt[0], factor->nsuper,
@@ -4553,9 +4534,9 @@ namespace NgPeytonCpp {
         xadj2.clear();
         adj2.clear();
 
-        /* ----------------------
- Symbolic factorization
- ---------------------- */
+        // ----------------------
+        // Symbolic factorization
+        // ----------------------
         if (order_ >= 0 && order_ <= 3) {
             /* not needed when MMD has been called */
             for (i = 0; i < iwsiz; i++)
@@ -4571,8 +4552,9 @@ namespace NgPeytonCpp {
         factor->lindx.resize(factor->nsub);
         factor->xlnz.resize(n + 1);
 
-        for (i = 0; i < iwsiz; i++)
+        for (i = 0; i < iwsiz; i++) {
             iwork[i] = 0;
+        }
 
         details::f2c::symfct(n, nnza, &xadj[0], &adj[0],
                              &factor->perm[0], &factor->invp[0], &factor->colcnt[0],
@@ -4580,10 +4562,10 @@ namespace NgPeytonCpp {
                              factor->nsub, &factor->xlindx[0], &factor->lindx[0],
                              &factor->xlnz[0], iwsiz, &iwork[0], iflag);
 
-        /* ---------------------------
-     Prepare for Numerical factorization
-     and triangular solve.
-     --------------------------- */
+        // ---------------------------
+        // Prepare for Numerical factorization
+        // and triangular solve.
+        // ---------------------------
 
         factor->split.resize(n);
 
@@ -4592,24 +4574,24 @@ namespace NgPeytonCpp {
                              &factor->xlindx[0], &factor->lindx[0], cachsz_, factor->tmpsiz,
                              &factor->split[0]);
 
+        //-------------
+        // Do the numerical factorization
+        //-------------
+
+        this->ldlTFactorize(colptr_, rowind_, nzvals_);
+
     }
 
-/// \brief CSC matrix
-/// colptr_ Array of size 'neqns + 1' for pointing entries of column
-/// rowind_ Array of size 'nnz + 1' for indicating row indices
-/// nzvals_
     template<typename Scalar, typename Index>
     void SymmetricSparse<Scalar, Index>::ldlTFactorize(const Index *colptr_,
                                                        const Index *rowind_,
                                                        const Scalar *nzvals_) {
-        // Assume that rowind[*] is 1-based
-        // Same for colptr
         Index i, nnz, nnzl, neqns, nsuper, tmpsiz, iflag, iwsiz;
         Index maxsup, jsup, nnzlplus, supsize;
         auto &myMat = *(factor.get());
 
         neqns = n;
-        nnz = colptr_[neqns] - 1;
+        nnz = colptr_[neqns];
         nnzl = myMat.nnzl;
         nsuper = myMat.nsuper;
         tmpsiz = myMat.tmpsiz;
@@ -4617,8 +4599,6 @@ namespace NgPeytonCpp {
 
         anz.resize(2 * nnz - neqns);
 
-        /* Aug 30, 2008, allocate extra space for diagonal extraction
-     the extra space is not used in the LDLT factorization */
         maxsup = 0;
         nnzlplus = nnzl;
         for (jsup = 0; jsup < nsuper; jsup++) {
@@ -4633,12 +4613,26 @@ namespace NgPeytonCpp {
         myMat.newrhs.resize(neqns);
 
         if (fullrep) {
-            std::copy(colptr_, colptr_ + neqns + 1, xadj.data());
-            std::copy(rowind_, rowind_ + nnz, adj.data());
+            for (Index i = 0; i <= neqns; ++i) {
+                xadj[i] = colptr_[i] + 1;  // this is C-to-Fortran
+            }
+            for (Index i = 0; i < nnz; ++i) {
+                adj[i] = rowind_[i] + 1;  // this is C-to-Fortran
+            }
             std::copy(nzvals_, nzvals_ + nnz, anz.data());
         } else {
-            details::f2c::flo2ho(neqns, colptr_, rowind_, nzvals_, &xadj[0], &adj[0],
-                                 &anz[0], &iwork[0]);
+            /* convert */
+            std::vector<Index> f_colptr(n + 1), f_rowind(nnz);
+            for (Index i = 0; i <= n; ++i) {
+                f_colptr[i] = colptr_[i] + 1;  // this is C-to-Fortran
+            }
+            for (Index i = 0; i < nnz; ++i) {
+                f_rowind[i] = rowind_[i] + 1;  // this is C-to-Fortran
+            }
+            details::f2c::flo2ho(neqns, f_colptr.data(),
+                                 f_rowind.data(), nzvals_,
+                                 xadj.data(), adj.data(),
+                                 anz.data(), iwork.data());
         }
 
         details::f2c::inpnv(neqns, &xadj[0], &adj[0], &anz[0],
@@ -4648,10 +4642,10 @@ namespace NgPeytonCpp {
 
         myMat.tmat.assign(tmpsiz, 0);
 
-        details::f2c::blkfct(neqns, nsuper, &myMat.xsuper[0], &myMat.snodes[0],
-                             &myMat.split[0], &myMat.xlindx[0], &myMat.lindx[0],
-                             &myMat.xlnz[0], &myMat.lnz[0], &myMat.diag[0], iwsiz,
-                             &iwork[0], tmpsiz, &myMat.tmat[0], iflag);
+        details::f2c::blkfct(neqns, nsuper, myMat.xsuper.data(), myMat.snodes.data(),
+                             myMat.split.data(), myMat.xlindx.data(), myMat.lindx.data(),
+                             myMat.xlnz.data(), myMat.lnz.data(), myMat.diag.data(), iwsiz,
+                             iwork.data(), tmpsiz, myMat.tmat.data(), iflag);
 
     }
 
@@ -4665,15 +4659,17 @@ namespace NgPeytonCpp {
 
         const auto perm_f = factor->perm;
         auto &newrhs = factor->newrhs;
-        for (Index i = 0; i < n; i++)
+        for (Index i = 0; i < n; i++) {
             newrhs[i] = rhs[perm_f[i] - 1];
+        }
 
-        details::f2c::blkslv(factor->nsuper, factor->xsuper.data(), factor->xlindx.data(), factor->lindx.data(),
-                             factor->xlnz.data(), factor->lnz.data(), factor->newrhs.data());
+        details::f2c::blkslv(factor->nsuper, factor->xsuper.data(), factor->xlindx.data(),
+                             factor->lindx.data(), factor->xlnz.data(), factor->lnz.data(), factor->newrhs.data());
 
         const auto invp_f = factor->invp;
-        for (int i = 0; i < n; i++)
+        for (int i = 0; i < n; i++) {
             x[i] = newrhs[invp_f[i] - 1];
+        }
     }
 
 } // namespace NgPeytonCpp

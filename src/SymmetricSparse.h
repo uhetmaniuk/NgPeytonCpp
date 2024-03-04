@@ -18,23 +18,15 @@ namespace NgPeytonCpp {
         ///
         /// \param n_
         /// \param colptr_
-        /// \param rowind_
+        /// \param rowind_ (C-based indices)
         /// \param order_
         /// \param perm_ User-provided permutation array
         SymmetricSparse(Index n_, const Index *colptr_, const Index *rowind_,
-                        Index order_, const Index *perm_ = nullptr);
+                        const Scalar *nzvals,
+                        Index order_ = 1, const Index *perm_ = nullptr);
 
         /// \brief Default destructor
         ~SymmetricSparse() = default;
-
-        /// \brief Factorize
-        ///
-        /// \tparam Index
-        /// \param colptr_
-        /// \param rowind_
-        /// \param nzvals_
-        void ldlTFactorize(const Index *colptr_, const Index *rowind_,
-                           const Scalar *nzvals_);
 
         /// \brief Solve
         ///
@@ -78,6 +70,15 @@ namespace NgPeytonCpp {
         //
         // Protected member functions
         //
+
+        /// \brief Factorize
+        ///
+        /// \tparam Index
+        /// \param colptr_
+        /// \param rowind_ C-based indices
+        /// \param nzvals_
+        void ldlTFactorize(const Index *colptr_, const Index *rowind_,
+                           const Scalar *nzvals_);
 
     };
 

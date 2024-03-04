@@ -8,7 +8,7 @@
 
 using Scalar = double;
 
-#define mesh(i, j) mesh[nx * ((j)-1) + (i)-1]
+#define mesh(i, j) mesh[nx * (j) + (i)]
 
 int main(int argc, char **argv) {
 
@@ -16,14 +16,12 @@ int main(int argc, char **argv) {
     int nx = -1, ny = -1, count, node;
     int order = 1;
     Scalar dval{};
-    int pbc = 0, chkerr = 1;
+    int pbc = 0;
     int printa = 0;
-    int dumpL = 0;
 
     std::vector<int> mesh, perm;
     std::vector<int> rowind, colptr;
-    std::vector<int> rowind_inva, colptr_inva;
-    std::vector<Scalar> nzvals, diag, diag2, inva;
+    std::vector<Scalar> nzvals;
 
     ia = 1;
     while (ia < argc) {
@@ -40,7 +38,7 @@ int main(int argc, char **argv) {
         } else {
             std::cerr << " Invalid argument!\n";
             std::cerr << "usage: clap2d5pt -nx=<x> -ny=<y> -order=<n> "
-                         "-chkerr=1 -printa=1\n";
+                         "-printa=1\n";
             return 1;
         }
         ia++;
@@ -52,39 +50,30 @@ int main(int argc, char **argv) {
         ny = nx;
 
     if (nx < 0)
-        nx = 10;
+        nx = 11;
     if (ny < 0)
-        ny = 10;
-
-    nx = 11;
-    ny = 9;
-    printa = 1;
-    chkerr = 1;
+        ny = 9;
 
     nnodes = nx * ny;
-    mesh.resize(nnodes);
 
-    for (i = 0; i < nnodes; i++)
-        mesh[i] = i + 1;
+    mesh.resize(nnodes);
+    for (i = 0; i < nnodes; i++) {
+        mesh[i] = i;
+    }
 
     /* first pass to count the number of edges */
-    if (pbc) {
-        /* Periodic BC */
-        nedges = 4 * nnodes;
-    } else {
-        /* Dirichlet BC */
-        nedges = 0;
-        for (j = 1; j <= ny; j++) {
-            for (i = 1; i <= nx; i++) {
-                if (j < ny)
-                    nedges++;
-                if (j > 1)
-                    nedges++;
-                if (i < nx)
-                    nedges++;
-                if (i > 1)
-                    nedges++;
-            }
+    /* Dirichlet BC */
+    nedges = 0;
+    for (j = 0; j < ny; j++) {
+        for (i = 0; i < nx; i++) {
+            if (j + 1 < ny)
+                nedges++;
+            if (j > 0)
+                nedges++;
+            if (i + 1 < nx)
+                nedges++;
+            if (i > 0)
+                nedges++;
         }
     }
     /* print the matrix dimension and number of nonzeros */
@@ -94,58 +83,36 @@ int main(int argc, char **argv) {
     rowind.resize(nnz, 0);
     nzvals.resize(nnz, 0);
 
-    colptr[0] = 1;
+    colptr[0] = 0;
     count = 0;
     node = 0;
 
-    if (pbc) {
-        dval = Scalar(10.0);
-        std::cout << " Periodic boundary condition\n";
-    } else {
-        dval = Scalar(4.0);
-        std::cout << " Dirichlet boundary condition\n";
-    }
+    Scalar hx = Scalar(1) / Scalar(nx + 1);
+    Scalar hy = Scalar(1) / Scalar(ny + 1);
 
-    for (j = 1; j <= ny; j++) {
-        for (i = 1; i <= nx; i++) {
+    for (j = 0; j < ny; j++) {
+        for (i = 0; i < nx; i++) {
             /* diagonal */
             rowind[count] = mesh(i, j);
-            nzvals[count] = dval;
+            nzvals[count] = Scalar(2) / (hx * hx) + Scalar(2) / (hy * hy);
             count++;
 
             /* lower */
-            if (i < nx) {
+            if (i + 1 < nx) {
                 rowind[count] = mesh(i + 1, j);
-                nzvals[count] = Scalar(-1.0);
+                nzvals[count] = Scalar(-1.0) / (hx * hx);
                 count++;
-            }
-
-            if (pbc) {
-                /* bottom of the mesh */
-                if (i == 1) {
-                    rowind[count] = mesh(nx, j);
-                    nzvals[count] = Scalar(-1.0);
-                    count++;
-                }
             }
 
             /* right */
-            if (j < ny) {
+            if (j + 1 < ny) {
                 rowind[count] = mesh(i, j + 1);
-                nzvals[count] = Scalar(-1.0);
+                nzvals[count] = Scalar(-1.0) / (hy * hy);
                 count++;
             }
 
-            if (pbc) {
-                /* right end of the mesh */
-                if (j == 1) {
-                    rowind[count] = mesh(i, ny);
-                    nzvals[count] = Scalar(-1.0);
-                    count++;
-                }
-            }
+            colptr[node + 1] = count;
             node++;
-            colptr[node] = count + 1;
         }
     }
 
@@ -154,36 +121,29 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    order = 2;
     if (order == 0) {
         perm.resize(nnodes);
         nd2d(nx, ny, mesh, perm);
     }
 
-    std::vector<int> u_cptr(colptr), u_rowind(rowind);
-    std::vector<Scalar> u_val(nzvals);
-    std::vector<int> u_perm(perm);
+    NgPeytonCpp::SymmetricSparse<Scalar> LDLt(nnodes, colptr.data(),
+                                              rowind.data(), nzvals.data(), order, perm.data());
 
-    NgPeytonCpp::SymmetricSparse<Scalar> uh(nnodes, u_cptr.data(),
-                                            u_rowind.data(), order, u_perm.data());
-    uh.ldlTFactorize(&u_cptr[0], &u_rowind[0], &u_val[0]);
-
-    std::vector<Scalar> x(nnodes), Ax(nnodes), y(nnodes);
-    for (int i = 0; i < nnodes; ++i) {
+    std::vector<Scalar> x(nnodes), Ax(nnodes, Scalar(0)), y(nnodes, Scalar(0));
+    for (i = 0; i < nnodes; ++i) {
         x[i] = Scalar(std::rand()) / Scalar(RAND_MAX);
-        Ax[i] = 0;
     }
 
-    for (int i = 0; i < nnodes; ++i) {
-        for (int k = u_cptr[i]; k < u_cptr[i + 1]; ++k) {
-            Ax[i] += u_val[k - 1] * x[u_rowind[k - 1] - 1];
-            if (u_rowind[k - 1] - 1 != i) {
-                Ax[u_rowind[k - 1] - 1] += u_val[k - 1] * x[i];
+    for (i = 0; i < nnodes; ++i) {
+        for (auto k = colptr[i]; k < colptr[i + 1]; ++k) {
+            Ax[i] += nzvals[k] * x[rowind[k]];
+            if (rowind[k] != i) {
+                Ax[rowind[k]] += nzvals[k] * x[i];
             }
         }
     }
 
-    uh.solve(Ax.data(), y.data());
+    LDLt.solve(Ax.data(), y.data());
     double error = 0.0, norm = 0.0;
     for (int i = 0; i < nnodes; ++i) {
         norm += std::abs(x[i]);
