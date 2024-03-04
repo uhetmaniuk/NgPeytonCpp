@@ -15,8 +15,6 @@ int main(int argc, char **argv) {
     int i, j, nnodes, nedges, ia, nnz;
     int nx = -1, ny = -1, count, node;
     int order = 1;
-    Scalar dval{};
-    int pbc = 0;
     int printa = 0;
 
     std::vector<int> mesh, perm;

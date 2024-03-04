@@ -4365,8 +4365,7 @@ namespace NgPeytonCpp {
                                                     const Scalar *nzvals_,
                                                     const Index order_, const Index *perm_) {
 
-        Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, j = 0, iwsiz = 0,
-                iflag = 0;
+        Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, iwsiz = 0, iflag = 0;
         bool sfiflg = true, notfound = true;
         Index pjend = 0, pibeg = 0, irow = 0, jcol = 0;
 
@@ -4374,7 +4373,7 @@ namespace NgPeytonCpp {
         nnz = colptr_[n];
 
         // Check to see whether a full representation the symmetric matrix is used
-        j = 0;
+        Index j = 0;
         while (notfound && j < n) {
             /* pointer to the last entry of column j */
             pjend = colptr_[j];
@@ -4420,14 +4419,14 @@ namespace NgPeytonCpp {
         if (fullrep) {
             /* make a copy of the non-zero structure, take out the diagonals */
             xadj[0] = 1;
-            for (i = 0; i < n; i++) {
+            for (Index i = 0; i < n; i++) {
                 xadj[i + 1] = xadj[i] + (colptr_[i + 1] - colptr_[i] - 1);
             }
             if (xadj[n] - 1 != nnza) {
                 std::cerr << " Something is wrong with the matrix!\n";
             }
 
-            i = 0;
+            Index i = 0;
             for (jcol = 0; jcol < n; jcol++) {
                 ibegin = colptr_[jcol];
                 iend = colptr_[jcol + 1];
@@ -4440,7 +4439,6 @@ namespace NgPeytonCpp {
             }
         } else {
             /* convert */
-            std::cout << " call ilo2ho \n";
             std::vector<Index> f_colptr(n + 1), f_rowind(nnz);
             for (Index i = 0; i <= n; ++i) {
                 f_colptr[i] = colptr_[i] + 1;  // this is C-to-Fortran
@@ -4526,7 +4524,7 @@ namespace NgPeytonCpp {
 #endif
         else if ((order_ == 0) && (perm_)) {
             /* use the input permutation vector */
-            for (i = 0; i < n; i++) {
+            for (Index i = 0; i < n; i++) {
                 factor->perm[i] = perm_[i];
                 factor->invp[factor->perm[i] - 1] = i + 1;
             }
@@ -4539,7 +4537,7 @@ namespace NgPeytonCpp {
         // ----------------------
         if (order_ >= 0 && order_ <= 3) {
             /* not needed when MMD has been called */
-            for (i = 0; i < iwsiz; i++)
+            for (Index i = 0; i < iwsiz; i++)
                 iwork[i] = 0;
             details::sfinit(n, nnza, &xadj[0], &adj[0],
                             &factor->perm[0], &factor->invp[0], &factor->colcnt[0],
@@ -4552,7 +4550,7 @@ namespace NgPeytonCpp {
         factor->lindx.resize(factor->nsub);
         factor->xlnz.resize(n + 1);
 
-        for (i = 0; i < iwsiz; i++) {
+        for (Index i = 0; i < iwsiz; i++) {
             iwork[i] = 0;
         }
 
@@ -4586,7 +4584,7 @@ namespace NgPeytonCpp {
     void SymmetricSparse<Scalar, Index>::ldlTFactorize(const Index *colptr_,
                                                        const Index *rowind_,
                                                        const Scalar *nzvals_) {
-        Index i, nnz, nnzl, neqns, nsuper, tmpsiz, iflag, iwsiz;
+        Index nnz, nnzl, neqns, nsuper, tmpsiz, iflag, iwsiz;
         Index maxsup, jsup, nnzlplus, supsize;
         auto &myMat = *(factor.get());
 
@@ -4667,7 +4665,7 @@ namespace NgPeytonCpp {
                              factor->lindx.data(), factor->xlnz.data(), factor->lnz.data(), factor->newrhs.data());
 
         const auto invp_f = factor->invp;
-        for (int i = 0; i < n; i++) {
+        for (Index i = 0; i < n; i++) {
             x[i] = newrhs[invp_f[i] - 1];
         }
     }
