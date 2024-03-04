@@ -10,6 +10,8 @@ SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 INCLUDE_DIRECTORIES ("${PROJECT_SOURCE_DIR}/src"
                      "${PROJECT_SOURCE_DIR}/examples")
 
-ADD_EXECUTABLE(test examples/dlap2d5pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h
+ADD_EXECUTABLE(test1 examples/dlap2d5pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h
         examples/nd2d.h)
+
+ADD_EXECUTABLE(test2 examples/slap2d9pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h)
 

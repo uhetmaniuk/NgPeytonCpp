@@ -15,7 +15,6 @@ int main(int argc, char **argv) {
     int i, j, nnodes, nedges, ia, nnz;
     int nx = -1, ny = -1, count, node;
     int order = 1;
-    int printa = 0;
 
     std::vector<int> mesh, perm;
     std::vector<int> rowind, colptr;
@@ -29,14 +28,9 @@ int main(int argc, char **argv) {
             ny = atoi(&argv[ia][4]);
         } else if (!strncmp(argv[ia], "-order", 6)) {
             order = atoi(&argv[ia][7]);
-        } else if (!strncmp(argv[ia], "-printa", 7)) {
-            printa = atoi(&argv[ia][8]);
-            if (printa != 0)
-                printa = 1;
         } else {
             std::cerr << " Invalid argument!\n";
-            std::cerr << "usage: clap2d5pt -nx=<x> -ny=<y> -order=<n> "
-                         "-printa=1\n";
+            std::cerr << "usage: clap2d5pt -nx=<x> -ny=<y> -order=<n> \n";
             return 1;
         }
         ia++;
@@ -116,7 +110,7 @@ int main(int argc, char **argv) {
 
     if (count != nnz) {
         std::cerr << " count = " << count << " nnz = " << nnz << "\n";
-        return 1;
+        return 2;
     }
 
     if (order == 0) {
@@ -143,10 +137,12 @@ int main(int argc, char **argv) {
 
     LDLt.solve(Ax.data(), y.data());
     double error = 0.0, norm = 0.0;
-    for (int i = 0; i < nnodes; ++i) {
+    for (i = 0; i < nnodes; ++i) {
         norm += std::abs(x[i]);
         error += std::abs(x[i] - y[i]);
     }
     std::cout << " || x - y || " << error << std::endl;
     std::cout << " || x - y || / || x || " << error / norm << "\n";
+
+    return 0;
 }

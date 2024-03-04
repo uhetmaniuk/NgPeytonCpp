@@ -23,7 +23,7 @@ namespace NgPeytonCpp {
         /// \param perm_ User-provided permutation array
         SymmetricSparse(Index n_, const Index *colptr_, const Index *rowind_,
                         const Scalar *nzvals,
-                        Index order_ = 1, const Index *perm_ = nullptr);
+                        Index order_ = 2, const Index *perm_ = nullptr);
 
         /// \brief Default destructor
         ~SymmetricSparse() = default;

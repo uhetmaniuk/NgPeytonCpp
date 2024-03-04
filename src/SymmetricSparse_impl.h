@@ -8,7 +8,6 @@
 
 #include "SymmetricSparse.h"
 
-
 #ifdef METIS
 extern void METIS_EdgeND(int *n, int *xadj, int *adj, int *numflag,
                          int *options, int *perm, int *invp);
@@ -1376,16 +1375,12 @@ namespace NgPeytonCpp {
                                      */
                                     rowcnt[hinbr] = rowcnt[hinbr] + level[lownbr] - level[hinbr];
                                 } else {
-                                    /*                           -----------------------------------------
-                                     */
-                                    /*                           ... OTHERWISE, LCA <-- FIND(PLEAF),
-                                     * WHICH */
-                                    /*                               IS THE LEAST COMMON ANCESTOR OF
-                                     * PLEAF */
+                                    /*                           ----------------------------------------- */
+                                    /*                           ... OTHERWISE, LCA <-- FIND(PLEAF), WHICH */
+                                    /*                               IS THE LEAST COMMON ANCESTOR OF PLEAF */
                                     /*                               AND LOWNBR. */
                                     /*                               (PATH HALVING.) */
-                                    /*                           -----------------------------------------
-                                     */
+                                    /*                           ----------------------------------------- */
                                     last1 = pleaf;
                                     last2 = set[last1];
                                     lca = set[last2];
@@ -1397,32 +1392,23 @@ namespace NgPeytonCpp {
                                         lca = set[last2];
                                         goto L300;
                                     }
-                                    /*                           -------------------------------------
-                                     */
-                                    /*                           ACCUMULATE PLEAF-->LCA PATH LENGTH IN
-                                     */
+                                    /*                           ------------------------------------- */
+                                    /*                           ACCUMULATE PLEAF-->LCA PATH LENGTH IN */
                                     /*                           ROWCNT(HINBR). */
                                     /*                           DECREMENT WEIGHT(LCA). */
-                                    /*                           -------------------------------------
-                                     */
+                                    /*                           ------------------------------------- */
                                     rowcnt[hinbr] = rowcnt[hinbr] + level[lownbr] - level[lca];
                                     --weight[lca];
                                 }
-                                /*                       ----------------------------------------------
-                                 */
-                                /*                       LOWNBR NOW BECOMES ``PREVIOUS LEAF'' OF
-                                 * HINBR. */
-                                /*                       ----------------------------------------------
-                                 */
+                                /*        -----------------------------------------  */
+                                /*        LOWNBR NOW BECOMES ``PREVIOUS LEAF'' OF HINBR  */
+                                /*        ---------------------------------------------- */
                                 prvlf[hinbr] = lownbr;
                                 lflag = 1;
                             }
-                            /*                   --------------------------------------------------
-                             */
-                            /*                   LOWNBR NOW BECOMES ``PREVIOUS NEIGHBOR'' OF HINBR.
-                             */
-                            /*                   --------------------------------------------------
-                             */
+                            /*      -------------------------------------------------- */
+                            /*      LOWNBR NOW BECOMES ``PREVIOUS NEIGHBOR'' OF HINBR. */
+                            /*      -------------------------------------------------- */
                             prvnbr[hinbr] = lownbr;
                         }
                         /* L500: */
@@ -3144,7 +3130,9 @@ namespace NgPeytonCpp {
                     nzbeg = nzend + 1;
                     nzend += knz;
                     if (nzend + 1 != xlindx[ksup + 1]) {
-                        goto L8000;
+                        // Inconsistency in data
+                        flag = -2;
+                        return 0;
                     }
                     i = head;
                     for (kptr = nzbeg; kptr <= nzend; ++kptr) {
@@ -3166,13 +3154,6 @@ namespace NgPeytonCpp {
 
                 }
 
-                return 0;
-
-                /*       ----------------------------------------------- */
-                /*       INCONSISTENCY IN DATA STRUCTURE WAS DISCOVERED. */
-                /*       ----------------------------------------------- */
-                L8000:
-                flag = -2;
                 return 0;
 
             } /* symfc2 */
@@ -3469,7 +3450,7 @@ namespace NgPeytonCpp {
 /* *********************************************************************** */
 
             template<typename Scalar, typename Index>
-            int mmpy1(Index m, Index n, Index q, Index *xpnt, Scalar *x, Scalar *y,
+            void mmpy1(Index m, Index n, Index q, Index *xpnt, Scalar *x, Scalar *y,
                       Index ldy) {
                 /* Local variables */
                 Scalar a1, z1, z2;
@@ -3510,8 +3491,6 @@ namespace NgPeytonCpp {
                     --mm;
                     --leny;
                 }
-
-                return 0;
             } /* mmpy1 */
 
 /* *********************************************************************** */
@@ -3950,18 +3929,16 @@ namespace NgPeytonCpp {
                     if (ksup > 0) {
                         nxksup = link[ksup];
 
-                        /*               -------------------------------------------------------
-                         */
+                        /*               ------------------------------------------------------- */
                         /*               GET INFO ABOUT THE CMOD(JSUP,KSUP) UPDATE. */
-
+                        //
                         /*               FKCOL  ...  FIRST COLUMN OF SUPERNODE KSUP. */
                         /*               NKCOLS ...  NUMBER OF COLUMNS IN SUPERNODE KSUP. */
                         /*               KLEN   ...  LENGTH OF ACTIVE PORTION OF COLUMN FKCOL. */
-                        /*               KXPNT  ...  POINTER TO INDEX OF FIRST NONZERO IN ACTIVE
-                         */
+                        /*               KXPNT  ...  POINTER TO INDEX OF FIRST NONZERO IN ACTIVE */
+                        //
                         /*                           PORTION OF COLUMN FJCOL. */
-                        /*               -------------------------------------------------------
-                         */
+                        /*            ------------------------------------------------------- */
                         fkcol = xsuper[ksup];
                         nkcols = xsuper[ksup + 1] - fkcol;
                         klen = length[ksup];
@@ -3976,7 +3953,6 @@ namespace NgPeytonCpp {
 
                             /*                   ------------------------------------------- */
                             /*                   SPARSE CMOD(JSUP,KSUP). */
-
                             /*                   NCOLUP ... NUMBER OF COLUMNS TO BE UPDATED. */
                             /*                   ------------------------------------------- */
 
@@ -3992,18 +3968,14 @@ namespace NgPeytonCpp {
 
                             if (nkcols == 1) {
 
-                                /*                       ----------------------------------------------
-                                 */
+                                /*                       ---------------------------------------------- */
                                 /*                       UPDATING TARGET SUPERNODE BY TRIVIAL */
                                 /*                       SUPERNODE (WITH ONE COLUMN). */
-
-                                /*                       KLPNT  ...  POINTER TO FIRST NONZERO IN
-                                 * ACTIVE */
+                                /*                       KLPNT  ...  POINTER TO FIRST NONZERO IN ACTIVE */
                                 /*                                   PORTION OF COLUMN FKCOL. */
                                 /*                       KDPNT  ...  POINTER TO DIAGONAL ENTRY OF */
                                 /*                                   COLUMN FKCOL. */
-                                /*                       ----------------------------------------------
-                                 */
+                                /*                       ----------------------------------------------  */
                                 klpnt = xlnz[fkcol + 1] - klen;
                                 kdpnt = xlnz[fkcol];
                                 mmpyi(klen, ncolup, &lindx[kxpnt], &lnz[klpnt], lnz[kdpnt],
@@ -4011,18 +3983,13 @@ namespace NgPeytonCpp {
 
                             } else {
 
-                                /*                       --------------------------------------------
-                                 */
-                                /*                       KFIRST ...  FIRST INDEX OF ACTIVE PORTION OF
-                                 */
-                                /*                                   SUPERNODE KSUP (FIRST COLUMN TO
-                                 */
+                                /*                       -------------------------------------------- */
+                                /*                       KFIRST ...  FIRST INDEX OF ACTIVE PORTION OF */
+                                /*                                   SUPERNODE KSUP (FIRST COLUMN TO  */
                                 /*                                   BE UPDATED). */
-                                /*                       KLAST  ...  LAST INDEX OF ACTIVE PORTION OF
-                                 */
+                                /*                       KLAST  ...  LAST INDEX OF ACTIVE PORTION OF  */
                                 /*                                   SUPERNODE KSUP. */
-                                /*                       --------------------------------------------
-                                 */
+                                /*                       --------------------------------------------  */
 
                                 kfirst = lindx[kxpnt];
                                 klast = lindx[kxpnt + klen - 1];
@@ -4030,16 +3997,13 @@ namespace NgPeytonCpp {
 
                                 if (inddif < klen) {
 
-                                    /*                           ---------------------------------------
-                                     */
-                                    /*                           DENSE CMOD(JSUP,KSUP). */
-
-                                    /*                           ILPNT  ...  POINTER TO FIRST NONZERO IN
-                                     */
-                                    /*                                       COLUMN KFIRST. */
-                                    /*                           ILEN   ...  LENGTH OF COLUMN KFIRST. */
-                                    /*                           ---------------------------------------
-                                     */
+                                    /*                 --------------------------------------- */
+                                    /*                   DENSE CMOD(JSUP,KSUP). */
+                                    //
+                                    /*                ILPNT  ...  POINTER TO FIRST NONZERO IN */
+                                    /*                               COLUMN KFIRST. */
+                                    /*                 ILEN   ...  LENGTH OF COLUMN KFIRST. */
+                                    /*                 --------------------------------------- */
                                     ilpnt = xlnz[kfirst];
                                     ilen = xlnz[kfirst + 1] - ilpnt;
                                     mmpy(klen, nkcols, ncolup, &split[fkcol], &xlnz[fkcol], &lnz[1],
@@ -4059,22 +4023,14 @@ namespace NgPeytonCpp {
                                     }
                                     mmpy(klen, nkcols, ncolup, &split[fkcol], &xlnz[fkcol], &lnz[1],
                                          &temp[1], klen);
-                                    /*                           ----------------------------------------
-                                     */
-                                    /*                           GATHER INDICES OF KSUP RELATIVE TO
-                                     * JSUP. */
-                                    /*                           ----------------------------------------
-                                     */
+                                    ///                 ----------------------------------------
+                                    ///                  GATHER INDICES OF KSUP RELATIVE TO JSUP
+                                    ///                 ----------------------------------------
                                     igathr(klen, &lindx[kxpnt], &indmap[1], &relind[1]);
-                                    /*                           --------------------------------------
-                                     */
-                                    /*                           INCORPORATE THE CMOD(JSUP,KSUP) BLOCK
-                                     */
-                                    /*                           UPDATE INTO THE TO APPROPRIATE COLUMNS
-                                     */
-                                    /*                           OF L. */
-                                    /*                           --------------------------------------
-                                     */
+                                    ///          --------------------------------------
+                                    ///           INCORPORATE THE CMOD(JSUP,KSUP) BLOCK
+                                    ///           UPDATE INTO THE TO APPROPRIATE COLUMNS OF L
+                                    ///          --------------------------------------
                                     assmb(klen, ncolup, &temp[1], &relind[1], &xlnz[fjcol], &lnz[1],
                                           jlen);
                                 }
@@ -4085,7 +4041,6 @@ namespace NgPeytonCpp {
                             /*                   ---------------------------------------------- */
                             /*                   DENSE CMOD(JSUP,KSUP). */
                             /*                   JSUP AND KSUP HAVE IDENTICAL STRUCTURE. */
-
                             /*                   JLPNT  ...  POINTER TO FIRST NONZERO IN COLUMN */
                             /*                               FJCOL. */
                             /*                   ---------------------------------------------- */
@@ -4376,14 +4331,12 @@ namespace NgPeytonCpp {
         Index j = 0;
         while (notfound && j < n) {
             /* pointer to the last entry of column j */
-            pjend = colptr_[j];
-            if (pjend >= colptr_[j - 1]) {
+            pjend = colptr_[j + 1] - 1;
+            if (pjend >= colptr_[j]) {
                 /* there is at least one off-diagonal entry, find its row index */
-                irow = rowind_[pjend]; // 0-based indices
-
+                irow = rowind_[pjend];
                 /* get column pointer to the first entry of irow-th column */
                 pibeg = colptr_[irow];
-
                 /* check to see if upper triangular part is present */
                 if (rowind_[pibeg] != irow) {
                     fullrep = true;
@@ -4595,7 +4548,12 @@ namespace NgPeytonCpp {
         tmpsiz = myMat.tmpsiz;
         iwsiz = 7 * neqns + 3;
 
-        anz.resize(2 * nnz - neqns);
+        if (fullrep) {
+            anz.resize(nnz);
+        }
+        else {
+            anz.resize(2 * nnz - neqns);
+        }
 
         maxsup = 0;
         nnzlplus = nnzl;
@@ -4644,26 +4602,19 @@ namespace NgPeytonCpp {
                              myMat.split.data(), myMat.xlindx.data(), myMat.lindx.data(),
                              myMat.xlnz.data(), myMat.lnz.data(), myMat.diag.data(), iwsiz,
                              iwork.data(), tmpsiz, myMat.tmat.data(), iflag);
-
     }
 
     template<typename Scalar, typename Index>
     void SymmetricSparse<Scalar, Index>::solve(const Scalar *rhs, Scalar *x) {
-
-        if (factor == nullptr) {
-            std::cerr << "\n !! Error -- Needs to call factorization first !! \n\n";
-            exit(-1);
-        }
-
         const auto perm_f = factor->perm;
         auto &newrhs = factor->newrhs;
         for (Index i = 0; i < n; i++) {
             newrhs[i] = rhs[perm_f[i] - 1];
         }
-
+        //
         details::f2c::blkslv(factor->nsuper, factor->xsuper.data(), factor->xlindx.data(),
                              factor->lindx.data(), factor->xlnz.data(), factor->lnz.data(), factor->newrhs.data());
-
+        //
         const auto invp_f = factor->invp;
         for (Index i = 0; i < n; i++) {
             x[i] = newrhs[invp_f[i] - 1];
