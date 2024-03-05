@@ -1,5 +1,4 @@
 #include <cmath>
-#include <complex>
 #include <iostream>
 #include <vector>
 
@@ -90,7 +89,7 @@ int main(int argc, char **argv) {
                 }
             }
 
-            colptr[node + 1] = rowind.size();
+            colptr[node + 1] = int(rowind.size());
             node++;
         }
     }

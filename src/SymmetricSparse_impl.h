@@ -3451,7 +3451,7 @@ namespace NgPeytonCpp {
 
             template<typename Scalar, typename Index>
             void mmpy1(Index m, Index n, Index q, Index *xpnt, Scalar *x, Scalar *y,
-                      Index ldy) {
+                       Index ldy) {
                 /* Local variables */
                 Scalar a1, z1, z2;
                 Index i1, j1, mm, iy, xcol, ycol, leny, iylast, iystop, iystrt;
@@ -3746,24 +3746,24 @@ namespace NgPeytonCpp {
                 /*       ------------------------ */
                 fjcol = xsuper[0];
                 for (jsup = 1; jsup <= nsuper; ++jsup) {
-                    ljcol = xsuper[jsup] - 1;
+                    ljcol = xsuper[jsup];
                     ixstrt = xlnz[fjcol];
                     jpnt = xlindx[jsup];
-                    for (jcol = fjcol; jcol <= ljcol; ++jcol) {
-                        ixstop = xlnz[jcol + 1] - 1;
+                    for (jcol = fjcol; jcol < ljcol; ++jcol) {
+                        ixstop = xlnz[jcol + 1];
                         t = rhs[jcol];
                         ipnt = jpnt + 1;
-                        for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
+                        for (ix = ixstrt + 1; ix < ixstop; ++ix) {
                             i = lindx[ipnt];
                             z2 = t * lnz[ix];
                             z1 = rhs[i] - z2;
                             rhs[i] = z1;
                             ++ipnt;
                         }
-                        ixstrt = ixstop + 1;
+                        ixstrt = ixstop;
                         ++jpnt;
                     }
-                    fjcol = ljcol + 1;
+                    fjcol = ljcol;
                 }
 
                 /*       ------------------ */
@@ -3776,25 +3776,25 @@ namespace NgPeytonCpp {
                 /*       ------------------------- */
                 /*       BACKWARD SUBSTITUTION ... */
                 /*       ------------------------- */
-                ljcol = xsuper[nsuper] - 1;
+                ljcol = xsuper[nsuper];
                 for (jsup = nsuper; jsup >= 1; --jsup) {
                     fjcol = xsuper[jsup - 1];
-                    ixstop = xlnz[ljcol + 1] - 1;
-                    jpnt = xlindx[jsup] + (ljcol - fjcol);
-                    for (jcol = ljcol; jcol >= fjcol; --jcol) {
+                    ixstop = xlnz[ljcol];
+                    jpnt = xlindx[jsup] + (ljcol - fjcol - 1);
+                    for (jcol = ljcol - 1; jcol >= fjcol; --jcol) {
                         ixstrt = xlnz[jcol];
                         ipnt = jpnt + 1;
                         t = rhs[jcol];
-                        for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
+                        for (ix = ixstrt + 1; ix < ixstop; ++ix) {
                             i = lindx[ipnt];
                             t -= lnz[ix] * rhs[i];
                             ++ipnt;
                         }
                         rhs[jcol] = t;
-                        ixstop = ixstrt - 1;
+                        ixstop = ixstrt;
                         --jpnt;
                     }
-                    ljcol = fjcol - 1;
+                    ljcol = fjcol;
                 }
             } /* blkslv */
 
@@ -4550,8 +4550,7 @@ namespace NgPeytonCpp {
 
         if (fullrep) {
             anz.resize(nnz);
-        }
-        else {
+        } else {
             anz.resize(2 * nnz - neqns);
         }
 
