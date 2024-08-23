@@ -140,6 +140,7 @@ int main(int argc, char **argv) {
         norm += std::abs(x[i]);
         error += std::abs(x[i] - y[i]);
     }
+    std::cout << " System of size " << nnodes << " x " << nnodes << "\n";
     std::cout << " || x - y || " << error << std::endl;
     std::cout << " || x - y || / || x || " << error / norm << "\n";
 
