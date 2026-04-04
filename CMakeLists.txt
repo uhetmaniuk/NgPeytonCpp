@@ -20,3 +20,7 @@ ADD_EXECUTABLE(test_isFullRepresentation tests/test_isFullRepresentation.cpp)
 target_include_directories(test_isFullRepresentation PRIVATE "${PROJECT_SOURCE_DIR}/src")
 ADD_TEST(NAME isFullRepresentation COMMAND test_isFullRepresentation)
 
+ADD_EXECUTABLE(test_solve tests/test_solve.cpp)
+target_include_directories(test_solve PRIVATE "${PROJECT_SOURCE_DIR}/src")
+ADD_TEST(NAME solve COMMAND test_solve)
+

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <sys/time.h>
 #include <vector>
 
@@ -4624,12 +4625,6 @@ namespace NgPeytonCpp
 					std::cerr << "\n";
 					return;
 				}
-				iflag = 0;
-				if (iwsiz < (neqns << 1) + (nsuper << 1))
-				{
-					iflag = -3;
-					return;
-				}
 
 				blkfc2(nsuper, xsuper, snode, split, xlindx, lindx,
 				       &xlnz[1], &lnz[1], iwork, &iwork[nsuper],
@@ -4893,11 +4888,7 @@ namespace NgPeytonCpp
 		}
 		else if (order_ == 1)
 		{
-			printf(" AMD not implemented yet, use MMD !\n");
-			details::f2c::ordmmd<int>(n, &xadj2[0], &adj2[0], &factor->invp[0],
-			                          &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
-			                          factor->nsub, &factor->colcnt[0], factor->nsuper,
-			                          &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+			throw std::runtime_error("AMD ordering (order=1) is not implemented");
 		}
 #ifdef METIS
                                                                                                                                     else if
@@ -5061,8 +5052,7 @@ Symbolic factorization
 	{
 		if (factor == nullptr)
 		{
-			std::cerr << "\n !! Error -- Needs to call factorization first !! \n\n";
-			exit(-1);
+			throw std::runtime_error("solve() called before factorization");
 		}
 
 		int nsuper = factor->nsuper;
