@@ -12,6 +12,8 @@ INCLUDE_DIRECTORIES ("${PROJECT_SOURCE_DIR}/src"
 
 ADD_EXECUTABLE(clap2d5pt examples/clap2d5pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h
         examples/nd2d.h)
+ADD_EXECUTABLE(slap2d9pt examples/slap2d9pt.cpp)
+ADD_EXECUTABLE(dlap2d9pt examples/dlap2d9pt.cpp)
 
 # --- Unit tests (ctest) ---
 enable_testing()
