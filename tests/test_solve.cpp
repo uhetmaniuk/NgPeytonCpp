@@ -151,12 +151,106 @@ void test_solve_5x5_arrow() {
     std::cout << "  PASS  test_solve_5x5_arrow\n";
 }
 
+// ---------------------------------------------------------------
+// 2D Laplace 5-point stencil on an 8x8 grid (n=64), Dirichlet BC
+// Lower-triangular CSC (1-based), identity ordering (order = 0)
+//
+// Grid node (i,j) maps to column  j*nx + i + 1  (0-based i,j).
+// Each node connects to its right and bottom neighbours in the
+// lower triangle.
+//
+//     A = 4 on diagonal, -1 for each neighbour
+//
+// Known solution: x = 1 everywhere, rhs = A * x computed explicitly.
+// ---------------------------------------------------------------
+void test_solve_laplace2d_8x8() {
+    const int nx = 8, ny = 8;
+    const int n = nx * ny;                      // 64
+
+    // --- Build lower-triangular CSC (1-based) ---
+    // First pass: count nnz per column
+    std::vector<int> colptr(n + 1, 0);
+    for (int j = 0; j < ny; ++j) {
+        for (int i = 0; i < nx; ++i) {
+            int col = j * nx + i;               // 0-based column
+            int cnt = 1;                        // diagonal
+            if (i + 1 < nx) ++cnt;              // neighbour below in col
+            if (j + 1 < ny) ++cnt;              // neighbour to the right
+            colptr[col + 1] = cnt;
+        }
+    }
+    // prefix sum (convert counts to 1-based pointers)
+    colptr[0] = 1;
+    for (int k = 1; k <= n; ++k)
+        colptr[k] += colptr[k - 1];
+
+    int nnz = colptr[n] - 1;
+    std::vector<int> rowind(nnz);
+    std::vector<double> nzvals(nnz);
+
+    // Second pass: fill rowind and nzvals
+    for (int j = 0; j < ny; ++j) {
+        for (int i = 0; i < nx; ++i) {
+            int col = j * nx + i;
+            int pos = colptr[col] - 1;          // 0-based position
+
+            // diagonal  (row = col+1, 1-based)
+            rowind[pos] = col + 1;
+            nzvals[pos] = 4.0;
+            ++pos;
+
+            // right neighbour in same row: col+1 (i+1,j)
+            if (i + 1 < nx) {
+                rowind[pos] = col + 2;          // (col+1)+1, 1-based
+                nzvals[pos] = -1.0;
+                ++pos;
+            }
+
+            // neighbour in next row: col+nx (i,j+1)
+            if (j + 1 < ny) {
+                rowind[pos] = col + nx + 1;     // 1-based
+                nzvals[pos] = -1.0;
+                ++pos;
+            }
+        }
+    }
+
+    // --- Build rhs = A * x_exact, with x_exact = 1 everywhere ---
+    // For each node, count its neighbours; rhs[node] = 4 - #neighbours
+    std::vector<double> rhs(n);
+    for (int j = 0; j < ny; ++j) {
+        for (int i = 0; i < nx; ++i) {
+            int neighbours = 0;
+            if (i > 0)      ++neighbours;
+            if (i + 1 < nx) ++neighbours;
+            if (j > 0)      ++neighbours;
+            if (j + 1 < ny) ++neighbours;
+            rhs[j * nx + i] = 4.0 - neighbours; // = 4 - #nbrs
+        }
+    }
+
+    // --- Solve with identity ordering ---
+    auto perm = identity_perm(n);
+    NgPeytonCpp::SymmetricSparse<double> mat(n, &colptr[0], &rowind[0], 0, &perm[0]);
+    mat.ldlTFactorize(&colptr[0], &rowind[0], &nzvals[0]);
+
+    std::vector<double> x(n, 0.0);
+    mat.solve(&rhs[0], &x[0]);
+
+    const double tol = 1e-10;
+    for (int i = 0; i < n; ++i) {
+        check_close(x[i], 1.0, tol, "x[i]");
+    }
+    std::cout << "  PASS  test_solve_laplace2d_8x8 (n=64)\n";
+}
+
 int main() {
     std::cout << "Running solve tests...\n";
     test_solve_3x3_tridiagonal();
     test_solve_4x4_diagonal();
     test_solve_4x4_tridiagonal();
     test_solve_5x5_arrow();
+    test_solve_laplace2d_8x8();
     std::cout << "All tests passed.\n";
     return 0;
 }
