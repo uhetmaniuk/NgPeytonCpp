@@ -8,23 +8,19 @@
 
 using doublecomplex = std::complex<double>;
 
-#define mesh(i, j) mesh[nx * ((j) - 1) + (i) - 1]
+#define mesh(i, j) mesh[nx * (j) + (i)]
 
 int main(int argc, char** argv) {
   int i, j, nnodes, nedges, ia, nnz;
   int nx = -1, ny = -1, count, node;
-  int token, order = 0;
-  int Lnnz;
-  double t0 = 0.0, t1 = 0.0, errmax = 0.0;
+  int order = 0;
   doublecomplex dval;
   int pbc = 1, chkerr = 1;
   int printa = 0;
-  int dumpL = 0;
 
   std::vector<int> mesh, perm;
   std::vector<int> rowind, colptr;
-  std::vector<int> rowind_inva, colptr_inva;
-  std::vector<doublecomplex> nzvals, diag, diag2, inva;
+  std::vector<doublecomplex> nzvals;
 
   ia = 1;
   while (ia < argc) {
@@ -66,7 +62,7 @@ int main(int argc, char** argv) {
   mesh.resize(nnodes);
 
   for (i = 0; i < nnodes; i++)
-    mesh[i] = i + 1;
+    mesh[i] = i;  // 0-based
 
   /* first pass to count the number of edges */
   if (pbc) {
@@ -75,15 +71,15 @@ int main(int argc, char** argv) {
   } else {
     /* Dirichlet BC */
     nedges = 0;
-    for (j = 1; j <= ny; j++) {
-      for (i = 1; i <= nx; i++) {
-        if (j < ny)
+    for (j = 0; j < ny; j++) {
+      for (i = 0; i < nx; i++) {
+        if (j + 1 < ny)
           nedges++;
-        if (j > 1)
+        if (j > 0)
           nedges++;
-        if (i < nx)
+        if (i + 1 < nx)
           nedges++;
-        if (i > 1)
+        if (i > 0)
           nedges++;
       }
     }
@@ -95,7 +91,7 @@ int main(int argc, char** argv) {
   rowind.resize(nnz, 0);
   nzvals.resize(nnz, 0);
 
-  colptr[0] = 1;
+  colptr[0] = 0;
   count = 0;
   node = 0;
 
@@ -107,8 +103,8 @@ int main(int argc, char** argv) {
     std::cout << " Dirichlet boundary condition\n";
   }
 
-  for (j = 1; j <= ny; j++) {
-    for (i = 1; i <= nx; i++) {
+  for (j = 0; j < ny; j++) {
+    for (i = 0; i < nx; i++) {
       /* diagonal */
       if (printa) {
         printf(
@@ -120,8 +116,8 @@ int main(int argc, char** argv) {
       nzvals[count] = dval;
       count++;
 
-      /* lower */
-      if (i < nx) {
+      /* lower neighbor (i+1, j) */
+      if (i + 1 < nx) {
         if (printa)
           printf("%d %d -1.0 0.0\n", mesh(i + 1, j), mesh(i, j));
 
@@ -131,19 +127,19 @@ int main(int argc, char** argv) {
       }
 
       if (pbc) {
-        /* bottom of the mesh */
-        if (i == 1) {
+        /* bottom of the mesh: wrap i=0 to i=nx-1 */
+        if (i == 0) {
           if (printa)
-            printf("%d %d -1.0 0.0\n", mesh(nx, j), mesh(i, j));
+            printf("%d %d -1.0 0.0\n", mesh(nx - 1, j), mesh(i, j));
 
-          rowind[count] = mesh(nx, j);
+          rowind[count] = mesh(nx - 1, j);
           nzvals[count] = std::complex<double>(-1.0, 0.0);
           count++;
         }
       }
 
-      /* right */
-      if (j < ny) {
+      /* right neighbor (i, j+1) */
+      if (j + 1 < ny) {
         if (printa)
           printf("%d %d -1.0 0.0\n", mesh(i, j + 1), mesh(i, j));
 
@@ -153,18 +149,18 @@ int main(int argc, char** argv) {
       }
 
       if (pbc) {
-        /* right end of the mesh */
-        if (j == 1) {
+        /* right end of the mesh: wrap j=0 to j=ny-1 */
+        if (j == 0) {
           if (printa)
-            printf("%d %d -1.0 0.0\n", mesh(i, ny), mesh(i, j));
+            printf("%d %d -1.0 0.0\n", mesh(i, ny - 1), mesh(i, j));
 
-          rowind[count] = mesh(i, ny);
+          rowind[count] = mesh(i, ny - 1);
           nzvals[count] = std::complex<double>(-1.0, 0.0);
           count++;
         }
       }
       node++;
-      colptr[node] = count + 1;
+      colptr[node] = count;
     }
   }
   if (count != nnz) {
@@ -172,18 +168,12 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  token = 0;
-
   if (order == 0) {
     perm.resize(nnodes);
     nd2d(nx, ny, mesh, perm);
   }
 
-  std::vector<int> u_cptr(colptr), u_rowind(rowind);
-  std::vector<doublecomplex> u_val(nzvals);
-  std::vector<int> u_perm(perm);
-
   NgPeytonCpp::SymmetricSparse<doublecomplex> uh(
-    nnodes, u_cptr.data(), u_rowind.data(), order, u_perm.data());
-  uh.ldlTFactorize(&u_cptr[0], &u_rowind[0], &u_val[0]);
+    nnodes, colptr.data(), rowind.data(), order, perm.data());
+  uh.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 }
