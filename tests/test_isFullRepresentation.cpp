@@ -1,7 +1,9 @@
 #include <cassert>
 #include <iostream>
 
-// Pull in the details namespace directly
+// NOTE: This test exercises the internal isFullRepresentation() function
+// directly. It uses 1-based CSC indices (the internal convention), not the
+// 0-based indices of the public API.
 #include "SymmetricSparse_impl.h"
 
 using NgPeytonCpp::details::isFullRepresentation;

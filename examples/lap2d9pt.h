@@ -7,14 +7,12 @@
 
 #include "SymmetricSparse.h"
 
-#define mesh(i, j) mesh[nx * (j) + (i)]
-
 template <typename Scalar>
 int lap2d9pt(int argc, char** argv) {
   int i, j, nnodes, ia;
   int nx = -1, ny = -1, node;
 
-  std::vector<int> mesh;
+  std::vector<int> grid;
   std::vector<int> rowind, colptr;
   std::vector<Scalar> nzvals;
 
@@ -36,10 +34,12 @@ int lap2d9pt(int argc, char** argv) {
 
   nnodes = nx * ny;
 
-  mesh.resize(nnodes);
-  for (i = 0; i < nnodes; i++) {
-    mesh[i] = i;
-  }
+  grid.resize(nnodes);
+  for (i = 0; i < nnodes; i++)
+    grid[i] = i;
+
+  // 0-based grid accessor: node at row i, column j
+  auto gnode = [&](int ii, int jj) { return grid[nx * jj + ii]; };
 
   colptr.resize(nnodes + 1, 0);
   rowind.reserve(9 * nnodes);
@@ -54,37 +54,37 @@ int lap2d9pt(int argc, char** argv) {
     for (i = 0; i < nx; i++) {
       if (j > 0) {
         if (i > 0) {
-          rowind.push_back(mesh(i - 1, j - 1));
+          rowind.push_back(gnode(i - 1, j - 1));
           nzvals.push_back(Scalar(-0.25) / (h * h));
         }
-        rowind.push_back(mesh(i, j - 1));
+        rowind.push_back(gnode(i, j - 1));
         nzvals.push_back(Scalar(-0.5) / (h * h));
         if (i + 1 < nx) {
-          rowind.push_back(mesh(i + 1, j - 1));
+          rowind.push_back(gnode(i + 1, j - 1));
           nzvals.push_back(Scalar(-0.25) / (h * h));
         }
       }
 
       if (i > 0) {
-        rowind.push_back(mesh(i - 1, j));
+        rowind.push_back(gnode(i - 1, j));
         nzvals.push_back(Scalar(-0.5) / (h * h));
       }
-      rowind.push_back(mesh(i, j));
+      rowind.push_back(gnode(i, j));
       nzvals.push_back(Scalar(3.0) / (h * h));
       if (i + 1 < nx) {
-        rowind.push_back(mesh(i + 1, j));
+        rowind.push_back(gnode(i + 1, j));
         nzvals.push_back(Scalar(-0.5) / (h * h));
       }
 
       if (j + 1 < ny) {
         if (i > 0) {
-          rowind.push_back(mesh(i - 1, j + 1));
+          rowind.push_back(gnode(i - 1, j + 1));
           nzvals.push_back(Scalar(-0.25) / (h * h));
         }
-        rowind.push_back(mesh(i, j + 1));
+        rowind.push_back(gnode(i, j + 1));
         nzvals.push_back(Scalar(-0.5) / (h * h));
         if (i + 1 < nx) {
-          rowind.push_back(mesh(i + 1, j + 1));
+          rowind.push_back(gnode(i + 1, j + 1));
           nzvals.push_back(Scalar(-0.25) / (h * h));
         }
       }
@@ -99,15 +99,13 @@ int lap2d9pt(int argc, char** argv) {
   LDLt.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 
   std::vector<Scalar> x(nnodes), Ax(nnodes, Scalar(0)), y(nnodes, Scalar(0));
-  for (i = 0; i < nnodes; ++i) {
+  for (i = 0; i < nnodes; ++i)
     x[i] = Scalar(i);
-  }
 
   for (i = 0; i < nnodes; ++i) {
     Ax[i] = 0;
-    for (auto k = colptr[i]; k < colptr[i + 1]; ++k) {
+    for (auto k = colptr[i]; k < colptr[i + 1]; ++k)
       Ax[i] += nzvals[k] * x[rowind[k]];
-    }
   }
 
   LDLt.solve(Ax.data(), y.data());
@@ -117,12 +115,10 @@ int lap2d9pt(int argc, char** argv) {
     norm += double(std::abs(x[i]));
     error += double(std::abs(x[i] - y[i]));
   }
-  std::cout << " || x - y ||_1 " << error << std::endl;
+  std::cout << " || x - y ||_1 " << error << "\n";
   std::cout << " || x - y ||_1 / || x ||_1 " << error / norm << "\n";
 
   return 0;
 }
-
-#undef mesh
 
 #endif  // LAP2D9PT_H

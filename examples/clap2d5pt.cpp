@@ -8,17 +8,15 @@
 
 using doublecomplex = std::complex<double>;
 
-#define mesh(i, j) mesh[nx * (j) + (i)]
-
 int main(int argc, char** argv) {
   int i, j, nnodes, nedges, ia, nnz;
   int nx = -1, ny = -1, count, node;
   int order = 0;
   doublecomplex dval;
-  int pbc = 1, chkerr = 1;
+  int pbc = 1;
   int printa = 0;
 
-  std::vector<int> mesh, perm;
+  std::vector<int> grid, perm;
   std::vector<int> rowind, colptr;
   std::vector<doublecomplex> nzvals;
 
@@ -36,8 +34,7 @@ int main(int argc, char** argv) {
         printa = 1;
     } else {
       std::cerr << " Invalid argument!\n";
-      std::cerr << "usage: clap2d5pt -nx=<x> -ny=<y> -order=<n> "
-                   "-printa=1\n";
+      std::cerr << "usage: clap2d5pt -nx=<x> -ny=<y> -order=<n> -printa=1\n";
       return 1;
     }
     ia++;
@@ -53,16 +50,14 @@ int main(int argc, char** argv) {
   if (ny < 0)
     ny = 10;
 
-  nx = 5;
-  ny = 7;
-  printa = 1;
-  chkerr = 1;
-
   nnodes = nx * ny;
-  mesh.resize(nnodes);
+  grid.resize(nnodes);
 
   for (i = 0; i < nnodes; i++)
-    mesh[i] = i;  // 0-based
+    grid[i] = i;  // 0-based
+
+  // 0-based grid accessor: node at row i, column j
+  auto gnode = [&](int i, int j) { return grid[nx * j + i]; };
 
   /* first pass to count the number of edges */
   if (pbc) {
@@ -106,20 +101,21 @@ int main(int argc, char** argv) {
     for (i = 0; i < nx; i++) {
       /* diagonal */
       if (printa) {
-        std::cout << mesh(i, j) << " " << mesh(i, j) << "  " << real(dval)
+        std::cout << gnode(i, j) << " " << gnode(i, j) << "  " << real(dval)
                   << " " << imag(dval) << "\n";
       }
 
-      rowind[count] = mesh(i, j);
+      rowind[count] = gnode(i, j);
       nzvals[count] = dval;
       count++;
 
       /* lower neighbor (i+1, j) */
       if (i + 1 < nx) {
         if (printa)
-          std::cout << mesh(i + 1, j) << " " << mesh(i, j) << " -1.0 0.0\n";
+          std::cout << gnode(i + 1, j) << " " << gnode(i, j)
+                    << " -1.0 0.0\n";
 
-        rowind[count] = mesh(i + 1, j);
+        rowind[count] = gnode(i + 1, j);
         nzvals[count] = doublecomplex(-1.0, 0.0);
         count++;
       }
@@ -128,10 +124,10 @@ int main(int argc, char** argv) {
         /* bottom of the mesh: wrap i=0 to i=nx-1 */
         if (i == 0) {
           if (printa)
-            std::cout << mesh(nx - 1, j) << " " << mesh(i, j)
+            std::cout << gnode(nx - 1, j) << " " << gnode(i, j)
                       << " -1.0 0.0\n";
 
-          rowind[count] = mesh(nx - 1, j);
+          rowind[count] = gnode(nx - 1, j);
           nzvals[count] = doublecomplex(-1.0, 0.0);
           count++;
         }
@@ -140,9 +136,10 @@ int main(int argc, char** argv) {
       /* right neighbor (i, j+1) */
       if (j + 1 < ny) {
         if (printa)
-          std::cout << mesh(i, j + 1) << " " << mesh(i, j) << " -1.0 0.0\n";
+          std::cout << gnode(i, j + 1) << " " << gnode(i, j)
+                    << " -1.0 0.0\n";
 
-        rowind[count] = mesh(i, j + 1);
+        rowind[count] = gnode(i, j + 1);
         nzvals[count] = doublecomplex(-1.0, 0.0);
         count++;
       }
@@ -151,10 +148,10 @@ int main(int argc, char** argv) {
         /* right end of the mesh: wrap j=0 to j=ny-1 */
         if (j == 0) {
           if (printa)
-            std::cout << mesh(i, ny - 1) << " " << mesh(i, j)
+            std::cout << gnode(i, ny - 1) << " " << gnode(i, j)
                       << " -1.0 0.0\n";
 
-          rowind[count] = mesh(i, ny - 1);
+          rowind[count] = gnode(i, ny - 1);
           nzvals[count] = doublecomplex(-1.0, 0.0);
           count++;
         }
@@ -170,7 +167,7 @@ int main(int argc, char** argv) {
 
   if (order == 0) {
     perm.resize(nnodes);
-    nd2d(nx, ny, mesh, perm);
+    nd2d(nx, ny, grid, perm);
   }
 
   NgPeytonCpp::SymmetricSparse<doublecomplex> uh(
@@ -178,8 +175,7 @@ int main(int argc, char** argv) {
   uh.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 
   /* Solve: set x = {0, 1, 2, ...}, compute Ax, solve, check */
-  std::vector<doublecomplex> x(nnodes), Ax(nnodes, 0.0),
-    y(nnodes, 0.0);
+  std::vector<doublecomplex> x(nnodes), Ax(nnodes, 0.0), y(nnodes, 0.0);
   for (i = 0; i < nnodes; ++i)
     x[i] = doublecomplex(i, 0.0);
 
@@ -187,9 +183,9 @@ int main(int argc, char** argv) {
   for (i = 0; i < nnodes; ++i) {
     for (auto k = colptr[i]; k < colptr[i + 1]; ++k) {
       int r = rowind[k];
-      Ax[r] += nzvals[k] * x[i];        // lower triangle: row r, col i
+      Ax[r] += nzvals[k] * x[i];
       if (r != i)
-        Ax[i] += nzvals[k] * x[r];      // upper triangle: row i, col r
+        Ax[i] += nzvals[k] * x[r];
     }
   }
 
