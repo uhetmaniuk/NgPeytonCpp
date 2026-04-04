@@ -10,6 +10,13 @@ SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 INCLUDE_DIRECTORIES ("${PROJECT_SOURCE_DIR}/src"
                      "${PROJECT_SOURCE_DIR}/examples")
 
-ADD_EXECUTABLE(test examples/clap2d5pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h
+ADD_EXECUTABLE(clap2d5pt examples/clap2d5pt.cpp src/SymmetricSparse.h src/SymmetricSparse_impl.h
         examples/nd2d.h)
+
+# --- Unit tests (ctest) ---
+enable_testing()
+
+ADD_EXECUTABLE(test_isFullRepresentation tests/test_isFullRepresentation.cpp)
+target_include_directories(test_isFullRepresentation PRIVATE "${PROJECT_SOURCE_DIR}/src")
+ADD_TEST(NAME isFullRepresentation COMMAND test_isFullRepresentation)
 

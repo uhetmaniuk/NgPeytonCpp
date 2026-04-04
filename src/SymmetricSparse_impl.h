@@ -1,7 +1,6 @@
 #ifndef CPPSELINV_SYMMETRICSPARSE_IMPL_H
 #define CPPSELINV_SYMMETRICSPARSE_IMPL_H
 
-#include <cmath>
 #include <iostream>
 #include <memory>
 #include <sys/time.h>
@@ -21,6 +20,45 @@ extern void METIS_NodeND(int *n, int *xadj, int *adj, int *numflag,
 namespace NgPeytonCpp {
 
 namespace details {
+
+    /**
+ * Detect whether a symmetric sparse matrix stored in 1-based CSC format
+ * uses a full representation (both triangular halves present) or only
+ * the lower triangular part.
+ *
+ * @param n        Number of columns
+ * @param colptr   Column pointer array, length n+1 (1-based)
+ * @param rowind   Row index array, length colptr[n]-1 (1-based)
+ * @return         true  if upper triangular entries are present (full representation)
+ *                 false if only the lower triangular part is stored
+ */
+    bool isFullRepresentation(int n, const int* colptr, const int* rowind)
+    {
+        bool fullrep  = false;
+        bool notfound = true;
+        int  j        = 1;
+
+        while (notfound && j < n) {
+            /* pointer to the last entry of column j */
+            int pjend = colptr[j] - 1;
+            if (pjend > colptr[j - 1]) {
+                /* there is at least one off-diagonal entry,
+                   find its row index */
+                int irow = rowind[pjend - 1];
+
+                /* get column pointer to the first entry of irow-th column */
+                int pibeg = colptr[irow - 1];
+
+                /* check to see if upper triangular part is present */
+                if (rowind[pibeg - 1] != irow) {
+                    fullrep = true;
+                }
+                notfound = false;
+            }
+            j++;
+        }
+        return fullrep;
+    }
 
 double gtimer() {
     timeval tp;
@@ -4436,36 +4474,16 @@ void blkfct(Index neqns, Index nsuper, Index *xsuper, Index *snode, Index *split
                                              const int *colptr_, const int *rowind_,
                                              const int order_, const int *perm_) {
 
-        int nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, j = 0, iwsiz = 0,
-                iflag = 0;
-        bool sfiflg = true, notfound = true;
-        int pjend = 0, pibeg = 0, irow = 0, jcol = 0;
+        int nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, iwsiz = 0, iflag = 0;
+        bool sfiflg = true;
+        int irow = 0, jcol = 0;
 
         n = n_;
         nnz = colptr_[n] - 1;
 
         /* Check to see whether a full representation the symmetric
      matrix is used */
-        j = 1;
-        while (notfound && j < n) {
-            /* pointer to the last entry of column j */
-            pjend = colptr_[j] - 1;
-            if (pjend >= colptr_[j - 1]) {
-                /* there is at least one off-diagonal entry,
-         find its row index */
-                irow = rowind_[pjend - 1];
-
-                /* get column pointer to the first entry of irow-th column */
-                pibeg = colptr_[irow - 1];
-
-                /* check to see if upper triangular part is present */
-                if (rowind_[pibeg - 1] != irow) {
-                    fullrep = true;
-                }
-                notfound = false;
-            }
-            j++;
-        }
+    fullrep = details::isFullRepresentation(n, colptr_, rowind_);
 
         /* nnza = number of nonzeros off diagonal */
         nnza = (fullrep) ? nnz - n : 2 * (nnz - n);
