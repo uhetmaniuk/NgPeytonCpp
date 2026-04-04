@@ -8,10 +8,9 @@
 
 using doublecomplex = std::complex<double>;
 
-#define mesh(i, j) mesh[nx * ((j)-1) + (i)-1]
+#define mesh(i, j) mesh[nx * ((j) - 1) + (i) - 1]
 
-int main(int argc, char **argv) {
-
+int main(int argc, char** argv) {
   int i, j, nnodes, nedges, ia, nnz;
   int nx = -1, ny = -1, count, node;
   int token, order = 0;
@@ -112,8 +111,9 @@ int main(int argc, char **argv) {
     for (i = 1; i <= nx; i++) {
       /* diagonal */
       if (printa) {
-        printf("%d %d  %8.2e %8.2e\n", mesh(i, j), mesh(i, j), real(dval),
-               imag(dval));
+        printf(
+          "%d %d  %8.2e %8.2e\n", mesh(i, j), mesh(i, j), real(dval),
+          imag(dval));
       }
 
       rowind[count] = mesh(i, j);
@@ -183,8 +183,7 @@ int main(int argc, char **argv) {
   std::vector<doublecomplex> u_val(nzvals);
   std::vector<int> u_perm(perm);
 
-  NgPeytonCpp::SymmetricSparse<doublecomplex> uh(nnodes, u_cptr.data(),
-                                                 u_rowind.data(), order, u_perm.data());
+  NgPeytonCpp::SymmetricSparse<doublecomplex> uh(
+    nnodes, u_cptr.data(), u_rowind.data(), order, u_perm.data());
   uh.ldlTFactorize(&u_cptr[0], &u_rowind[0], &u_val[0]);
-
 }

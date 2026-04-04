@@ -6,22 +6,22 @@
 
 namespace NgPeytonCpp {
 
-template <typename Scalar> class SymmetricSparse {
-
+template <typename Scalar>
+class SymmetricSparse {
 public:
-
   /// \brief Remove default constructor
   SymmetricSparse() = delete;
 
   /// \brief Constructor
   ///
-  /// \param n_
-  /// \param colptr_
-  /// \param rowind_
-  /// \param order_
-  /// \param perm_ User-provided permutation array
-  SymmetricSparse(int n_, const int *colptr_, const int *rowind_,
-                  int order_, const int *perm_ = nullptr);
+  /// \param n_      Number of equations
+  /// \param colptr_ Column pointer array, length n+1 (0-based)
+  /// \param rowind_ Row index array, length colptr[n] (0-based)
+  /// \param order_  Ordering: -1 = MMD, 0 = user-provided (perm_)
+  /// \param perm_   User-provided permutation array (0-based), or nullptr
+  SymmetricSparse(
+    int n_, const int* colptr_, const int* rowind_, int order_,
+    const int* perm_ = nullptr);
 
   /// \brief Default destructor
   ~SymmetricSparse() = default;
@@ -29,22 +29,22 @@ public:
   /// \brief Factorize
   ///
   /// \tparam Index
-  /// \param colptr_
-  /// \param rowind_
-  /// \param nzvals_
+  /// \param colptr_ Column pointer array, length n+1 (0-based)
+  /// \param rowind_ Row index array, length colptr[n] (0-based)
+  /// \param nzvals_ Nonzero values array
   template <typename Index>
-  void ldlTFactorize(const Index *colptr_, const Index *rowind_,
-                     const Scalar *nzvals_);
+  void ldlTFactorize(
+    const Index* colptr_, const Index* rowind_, const Scalar* nzvals_);
 
   /// \brief Solve
   ///
   /// \param x
   /// \param rhs
-  void solve(const Scalar *rhs, Scalar *x);
+  void solve(const Scalar* rhs, Scalar* x);
 
 protected:
-
-  template <typename Value> class LDLt_factor {
+  template <typename Value>
+  class LDLt_factor {
   public:
     int nsuper = 0;
     int nsub = 0;
@@ -77,11 +77,10 @@ protected:
   //
   // Protected member functions
   //
-
 };
 
-}
+}  // namespace NgPeytonCpp
 
 #include "SymmetricSparse_impl.h"
 
-#endif // CPPSELINV_SYMMETRICSPARSE_H
+#endif  // CPPSELINV_SYMMETRICSPARSE_H

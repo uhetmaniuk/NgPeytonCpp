@@ -19,13 +19,13 @@ using NgPeytonCpp::details::isFullRepresentation;
 //   rowind = {1, 2, 3,  2, 3,  3}
 // ---------------------------------------------------------------
 void test_lower_triangular_only() {
-    const int n = 3;
-    const int colptr[] = {1, 4, 6, 7};
-    const int rowind[] = {1, 2, 3, 2, 3, 3};
+  const int n = 3;
+  const int colptr[] = {1, 4, 6, 7};
+  const int rowind[] = {1, 2, 3, 2, 3, 3};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(!result && "Lower-triangular matrix must NOT be detected as full");
-    std::cout << "  PASS  test_lower_triangular_only\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(!result && "Lower-triangular matrix must NOT be detected as full");
+  std::cout << "  PASS  test_lower_triangular_only\n";
 }
 
 // ---------------------------------------------------------------
@@ -41,13 +41,13 @@ void test_lower_triangular_only() {
 //   rowind = {1, 2, 3,  1, 2, 3,  1, 2, 3}
 // ---------------------------------------------------------------
 void test_full_representation() {
-    const int n = 3;
-    const int colptr[] = {1, 4, 7, 10};
-    const int rowind[] = {1, 2, 3, 1, 2, 3, 1, 2, 3};
+  const int n = 3;
+  const int colptr[] = {1, 4, 7, 10};
+  const int rowind[] = {1, 2, 3, 1, 2, 3, 1, 2, 3};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(result && "Full-representation matrix must be detected as full");
-    std::cout << "  PASS  test_full_representation\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(result && "Full-representation matrix must be detected as full");
+  std::cout << "  PASS  test_full_representation\n";
 }
 
 // ---------------------------------------------------------------
@@ -58,13 +58,13 @@ void test_full_representation() {
 // No off-diagonal entries, so the function should return false.
 // ---------------------------------------------------------------
 void test_diagonal_only() {
-    const int n = 3;
-    const int colptr[] = {1, 2, 3, 4};
-    const int rowind[] = {1, 2, 3};
+  const int n = 3;
+  const int colptr[] = {1, 2, 3, 4};
+  const int rowind[] = {1, 2, 3};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(!result && "Diagonal-only matrix must NOT be detected as full");
-    std::cout << "  PASS  test_diagonal_only\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(!result && "Diagonal-only matrix must NOT be detected as full");
+  std::cout << "  PASS  test_diagonal_only\n";
 }
 
 // ---------------------------------------------------------------
@@ -73,13 +73,13 @@ void test_diagonal_only() {
 //   rowind = {1}
 // ---------------------------------------------------------------
 void test_single_element() {
-    const int n = 1;
-    const int colptr[] = {1, 2};
-    const int rowind[] = {1};
+  const int n = 1;
+  const int colptr[] = {1, 2};
+  const int rowind[] = {1};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(!result && "1x1 matrix must NOT be detected as full");
-    std::cout << "  PASS  test_single_element\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(!result && "1x1 matrix must NOT be detected as full");
+  std::cout << "  PASS  test_single_element\n";
 }
 
 // ---------------------------------------------------------------
@@ -92,13 +92,13 @@ void test_single_element() {
 //   rowind = {1, 2, 3, 4, 5, 6,  7, 8, 9,  8, 9,  9}
 // ---------------------------------------------------------------
 void test_diagonal_then_lower_triangular() {
-    const int n = 9;
-    const int colptr[] = {1, 2, 3, 4, 5, 6, 7, 10, 12, 13};
-    const int rowind[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 9, 9};
+  const int n = 9;
+  const int colptr[] = {1, 2, 3, 4, 5, 6, 7, 10, 12, 13};
+  const int rowind[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 9, 9};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(!result && "Diagonal-then-lower-tri must NOT be detected as full");
-    std::cout << "  PASS  test_diagonal_then_lower_triangular\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(!result && "Diagonal-then-lower-tri must NOT be detected as full");
+  std::cout << "  PASS  test_diagonal_then_lower_triangular\n";
 }
 
 // ---------------------------------------------------------------
@@ -111,13 +111,13 @@ void test_diagonal_then_lower_triangular() {
 //   rowind = {1, 2, 3, 4, 5, 6,  7, 8, 9,  7, 8, 9,  7, 8, 9}
 // ---------------------------------------------------------------
 void test_diagonal_then_full_representation() {
-    const int n = 9;
-    const int colptr[] = {1, 2, 3, 4, 5, 6, 7, 10, 13, 16};
-    const int rowind[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 7, 8, 9, 7, 8, 9};
+  const int n = 9;
+  const int colptr[] = {1, 2, 3, 4, 5, 6, 7, 10, 13, 16};
+  const int rowind[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 7, 8, 9, 7, 8, 9};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(result && "Diagonal-then-full must be detected as full");
-    std::cout << "  PASS  test_diagonal_then_full_representation\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(result && "Diagonal-then-full must be detected as full");
+  std::cout << "  PASS  test_diagonal_then_full_representation\n";
 }
 
 // ---------------------------------------------------------------
@@ -130,13 +130,13 @@ void test_diagonal_then_full_representation() {
 //   rowind = {1, 2, 3,  2, 3,  3,  4, 5, 6, 7, 8, 9}
 // ---------------------------------------------------------------
 void test_lower_triangular_then_diagonal() {
-    const int n = 9;
-    const int colptr[] = {1, 4, 6, 7, 8, 9, 10, 11, 12, 13};
-    const int rowind[] = {1, 2, 3, 2, 3, 3, 4, 5, 6, 7, 8, 9};
+  const int n = 9;
+  const int colptr[] = {1, 4, 6, 7, 8, 9, 10, 11, 12, 13};
+  const int rowind[] = {1, 2, 3, 2, 3, 3, 4, 5, 6, 7, 8, 9};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(!result && "Lower-tri-then-diagonal must NOT be detected as full");
-    std::cout << "  PASS  test_lower_triangular_then_diagonal\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(!result && "Lower-tri-then-diagonal must NOT be detected as full");
+  std::cout << "  PASS  test_lower_triangular_then_diagonal\n";
 }
 
 // ---------------------------------------------------------------
@@ -149,25 +149,25 @@ void test_lower_triangular_then_diagonal() {
 //   rowind = {1, 2, 3,  1, 2, 3,  1, 2, 3,  4, 5, 6, 7, 8, 9}
 // ---------------------------------------------------------------
 void test_full_representation_then_diagonal() {
-    const int n = 9;
-    const int colptr[] = {1, 4, 7, 10, 11, 12, 13, 14, 15, 16};
-    const int rowind[] = {1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+  const int n = 9;
+  const int colptr[] = {1, 4, 7, 10, 11, 12, 13, 14, 15, 16};
+  const int rowind[] = {1, 2, 3, 1, 2, 3, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
-    bool result = isFullRepresentation(n, colptr, rowind);
-    assert(result && "Full-then-diagonal must be detected as full");
-    std::cout << "  PASS  test_full_representation_then_diagonal\n";
+  bool result = isFullRepresentation(n, colptr, rowind);
+  assert(result && "Full-then-diagonal must be detected as full");
+  std::cout << "  PASS  test_full_representation_then_diagonal\n";
 }
 
 int main() {
-    std::cout << "Running isFullRepresentation tests...\n";
-    test_lower_triangular_only();
-    test_full_representation();
-    test_diagonal_only();
-    test_single_element();
-    test_diagonal_then_lower_triangular();
-    test_diagonal_then_full_representation();
-    test_lower_triangular_then_diagonal();
-    test_full_representation_then_diagonal();
-    std::cout << "All tests passed.\n";
-    return 0;
+  std::cout << "Running isFullRepresentation tests...\n";
+  test_lower_triangular_only();
+  test_full_representation();
+  test_diagonal_only();
+  test_single_element();
+  test_diagonal_then_lower_triangular();
+  test_diagonal_then_full_representation();
+  test_lower_triangular_then_diagonal();
+  test_full_representation_then_diagonal();
+  std::cout << "All tests passed.\n";
+  return 0;
 }
