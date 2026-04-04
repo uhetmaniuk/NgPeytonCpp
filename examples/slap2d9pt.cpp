@@ -99,23 +99,26 @@ int main(int argc, char **argv) {
 
     std::vector<Scalar> x(nnodes), Ax(nnodes, Scalar(0)), y(nnodes, Scalar(0));
     for (i = 0; i < nnodes; ++i) {
-        x[i] = Scalar(std::rand()) / Scalar(RAND_MAX);
+        //x[i] = Scalar(std::rand()) / Scalar(RAND_MAX);
+        x[i] = Scalar(i);
     }
 
     for (i = 0; i < nnodes; ++i) {
+        Ax[i] = 0;
         for (auto k = colptr[i]; k < colptr[i + 1]; ++k) {
             Ax[i] += nzvals[k] * x[rowind[k]];
         }
     }
 
     LDLt.solve(Ax.data(), y.data());
+
     double error = 0.0, norm = 0.0;
     for (i = 0; i < nnodes; ++i) {
         norm += double(std::abs(x[i]));
         error += double(std::abs(x[i] - y[i]));
     }
-    std::cout << " || x - y || " << error << std::endl;
-    std::cout << " || x - y || / || x || " << error / norm << "\n";
+    std::cout << " || x - y ||_1 " << error << std::endl;
+    std::cout << " || x - y ||_1 / || x ||_1 " << error / norm << "\n";
 
     return 0;
 }

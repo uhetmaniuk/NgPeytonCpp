@@ -141,8 +141,8 @@ int main(int argc, char **argv) {
         error += std::abs(x[i] - y[i]);
     }
     std::cout << " System of size " << nnodes << " x " << nnodes << "\n";
-    std::cout << " || x - y || " << error << std::endl;
-    std::cout << " || x - y || / || x || " << error / norm << "\n";
+    std::cout << " || x - y ||_1 " << error << std::endl;
+    std::cout << " || x - y ||_1 / || x ||_1 " << error / norm << "\n";
 
     return 0;
 }
