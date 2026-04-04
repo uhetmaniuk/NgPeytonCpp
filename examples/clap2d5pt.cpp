@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     } else {
       std::cerr << " Invalid argument!\n";
       std::cerr << "usage: clap2d5pt -nx=<x> -ny=<y> -order=<n> "
-                   "-chkerr=1 -printa=1\n";
+                   "-printa=1\n";
       return 1;
     }
     ia++;
@@ -84,7 +84,6 @@ int main(int argc, char** argv) {
       }
     }
   }
-  /* print the matrix dimension and number of nonzeros */
   nnz = nedges / 2 + nnodes;
 
   colptr.resize(nnodes + 1, 0);
@@ -96,10 +95,10 @@ int main(int argc, char** argv) {
   node = 0;
 
   if (pbc) {
-    dval = std::complex<double>(10.0, 0.0);
+    dval = doublecomplex(10.0, 0.0);
     std::cout << " Periodic boundary condition\n";
   } else {
-    dval = std::complex<double>(4.0, 0.0);
+    dval = doublecomplex(4.0, 0.0);
     std::cout << " Dirichlet boundary condition\n";
   }
 
@@ -107,9 +106,8 @@ int main(int argc, char** argv) {
     for (i = 0; i < nx; i++) {
       /* diagonal */
       if (printa) {
-        printf(
-          "%d %d  %8.2e %8.2e\n", mesh(i, j), mesh(i, j), real(dval),
-          imag(dval));
+        std::cout << mesh(i, j) << " " << mesh(i, j) << "  " << real(dval)
+                  << " " << imag(dval) << "\n";
       }
 
       rowind[count] = mesh(i, j);
@@ -119,10 +117,10 @@ int main(int argc, char** argv) {
       /* lower neighbor (i+1, j) */
       if (i + 1 < nx) {
         if (printa)
-          printf("%d %d -1.0 0.0\n", mesh(i + 1, j), mesh(i, j));
+          std::cout << mesh(i + 1, j) << " " << mesh(i, j) << " -1.0 0.0\n";
 
         rowind[count] = mesh(i + 1, j);
-        nzvals[count] = std::complex<double>(-1.0, 0.0);
+        nzvals[count] = doublecomplex(-1.0, 0.0);
         count++;
       }
 
@@ -130,10 +128,11 @@ int main(int argc, char** argv) {
         /* bottom of the mesh: wrap i=0 to i=nx-1 */
         if (i == 0) {
           if (printa)
-            printf("%d %d -1.0 0.0\n", mesh(nx - 1, j), mesh(i, j));
+            std::cout << mesh(nx - 1, j) << " " << mesh(i, j)
+                      << " -1.0 0.0\n";
 
           rowind[count] = mesh(nx - 1, j);
-          nzvals[count] = std::complex<double>(-1.0, 0.0);
+          nzvals[count] = doublecomplex(-1.0, 0.0);
           count++;
         }
       }
@@ -141,10 +140,10 @@ int main(int argc, char** argv) {
       /* right neighbor (i, j+1) */
       if (j + 1 < ny) {
         if (printa)
-          printf("%d %d -1.0 0.0\n", mesh(i, j + 1), mesh(i, j));
+          std::cout << mesh(i, j + 1) << " " << mesh(i, j) << " -1.0 0.0\n";
 
         rowind[count] = mesh(i, j + 1);
-        nzvals[count] = std::complex<double>(-1.0, 0.0);
+        nzvals[count] = doublecomplex(-1.0, 0.0);
         count++;
       }
 
@@ -152,10 +151,11 @@ int main(int argc, char** argv) {
         /* right end of the mesh: wrap j=0 to j=ny-1 */
         if (j == 0) {
           if (printa)
-            printf("%d %d -1.0 0.0\n", mesh(i, ny - 1), mesh(i, j));
+            std::cout << mesh(i, ny - 1) << " " << mesh(i, j)
+                      << " -1.0 0.0\n";
 
           rowind[count] = mesh(i, ny - 1);
-          nzvals[count] = std::complex<double>(-1.0, 0.0);
+          nzvals[count] = doublecomplex(-1.0, 0.0);
           count++;
         }
       }
@@ -176,4 +176,32 @@ int main(int argc, char** argv) {
   NgPeytonCpp::SymmetricSparse<doublecomplex> uh(
     nnodes, colptr.data(), rowind.data(), order, perm.data());
   uh.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
+
+  /* Solve: set x = {0, 1, 2, ...}, compute Ax, solve, check */
+  std::vector<doublecomplex> x(nnodes), Ax(nnodes, 0.0),
+    y(nnodes, 0.0);
+  for (i = 0; i < nnodes; ++i)
+    x[i] = doublecomplex(i, 0.0);
+
+  /* SpMV: Ax = A*x (lower-triangular CSC, symmetrize) */
+  for (i = 0; i < nnodes; ++i) {
+    for (auto k = colptr[i]; k < colptr[i + 1]; ++k) {
+      int r = rowind[k];
+      Ax[r] += nzvals[k] * x[i];        // lower triangle: row r, col i
+      if (r != i)
+        Ax[i] += nzvals[k] * x[r];      // upper triangle: row i, col r
+    }
+  }
+
+  uh.solve(Ax.data(), y.data());
+
+  double error = 0.0, norm = 0.0;
+  for (i = 0; i < nnodes; ++i) {
+    norm += std::abs(x[i]);
+    error += std::abs(x[i] - y[i]);
+  }
+  std::cout << " || x - y ||_1 " << error << "\n";
+  std::cout << " || x - y ||_1 / || x ||_1 " << error / norm << "\n";
+
+  return 0;
 }

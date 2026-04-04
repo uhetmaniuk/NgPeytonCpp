@@ -62,7 +62,7 @@ protected:
     std::vector<int> colcnt;
     int tmpsiz = 0;
     std::vector<int> split;
-    std::vector<Scalar> newrhs;
+    std::vector<Value> newrhs;
   };
 
   int n = 0;

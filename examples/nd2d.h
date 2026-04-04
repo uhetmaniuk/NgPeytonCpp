@@ -27,27 +27,31 @@ int nd2d(int nx, int ny, std::vector<int>& mesh, std::vector<int>& perm) {
 
     /* order the top half (rows 0..midrow-1) */
     nxtop = midrow;
-    std::vector<int> meshtop(nxtop * ny);
-    std::vector<int> ptop(nxtop * ny, 0);
-    for (j = 0; j < ny; j++)
-      for (i = 0; i < nxtop; i++)
-        meshtop[nxtop * j + i] = mesh_(i, j);
+    if (nxtop > 0) {
+      std::vector<int> meshtop(nxtop * ny);
+      std::vector<int> ptop(nxtop * ny, 0);
+      for (j = 0; j < ny; j++)
+        for (i = 0; i < nxtop; i++)
+          meshtop[nxtop * j + i] = mesh_(i, j);
 
-    nd2d(nxtop, ny, meshtop, ptop);
-    for (i = 0; i < nxtop * ny; i++)
-      perm[i] = ptop[i];
+      nd2d(nxtop, ny, meshtop, ptop);
+      for (i = 0; i < nxtop * ny; i++)
+        perm[i] = ptop[i];
+    }
 
     /* order the bottom half (rows midrow+1..nx-1) */
     nxbot = nx - nxtop - 1;
-    std::vector<int> meshbot(nxbot * ny);
-    std::vector<int> pbot(nxbot * ny, 0);
-    for (j = 0; j < ny; j++)
-      for (i = 0; i < nxbot; i++)
-        meshbot[nxbot * j + i] = mesh_(midrow + 1 + i, j);
+    if (nxbot > 0) {
+      std::vector<int> meshbot(nxbot * ny);
+      std::vector<int> pbot(nxbot * ny, 0);
+      for (j = 0; j < ny; j++)
+        for (i = 0; i < nxbot; i++)
+          meshbot[nxbot * j + i] = mesh_(midrow + 1 + i, j);
 
-    nd2d(nxbot, ny, meshbot, pbot);
-    for (i = 0; i < nxbot * ny; i++)
-      perm[nxtop * ny + i] = pbot[i];
+      nd2d(nxbot, ny, meshbot, pbot);
+      for (i = 0; i < nxbot * ny; i++)
+        perm[nxtop * ny + i] = pbot[i];
+    }
 
     /* append the separator (row midrow) */
     for (j = 0; j < ny; j++)
@@ -59,27 +63,31 @@ int nd2d(int nx, int ny, std::vector<int>& mesh, std::vector<int>& perm) {
 
     /* order the left half (cols 0..midcol-1) */
     nyleft = midcol;
-    std::vector<int> meshleft(nx * nyleft);
-    std::vector<int> pleft(nx * nyleft, 0);
-    for (j = 0; j < nyleft; j++)
-      for (i = 0; i < nx; i++)
-        meshleft[nyleft > 0 ? j * nx + i : 0] = mesh_(i, j);
+    if (nyleft > 0) {
+      std::vector<int> meshleft(nx * nyleft);
+      std::vector<int> pleft(nx * nyleft, 0);
+      for (j = 0; j < nyleft; j++)
+        for (i = 0; i < nx; i++)
+          meshleft[j * nx + i] = mesh_(i, j);
 
-    nd2d(nx, nyleft, meshleft, pleft);
-    for (i = 0; i < nyleft * nx; i++)
-      perm[i] = pleft[i];
+      nd2d(nx, nyleft, meshleft, pleft);
+      for (i = 0; i < nyleft * nx; i++)
+        perm[i] = pleft[i];
+    }
 
     /* order the right half (cols midcol+1..ny-1) */
     nyright = ny - nyleft - 1;
-    std::vector<int> meshright(nx * nyright);
-    std::vector<int> pright(nx * nyright, 0);
-    for (j = 0; j < nyright; j++)
-      for (i = 0; i < nx; i++)
-        meshright[j * nx + i] = mesh_(i, midcol + 1 + j);
+    if (nyright > 0) {
+      std::vector<int> meshright(nx * nyright);
+      std::vector<int> pright(nx * nyright, 0);
+      for (j = 0; j < nyright; j++)
+        for (i = 0; i < nx; i++)
+          meshright[j * nx + i] = mesh_(i, midcol + 1 + j);
 
-    nd2d(nx, nyright, meshright, pright);
-    for (i = 0; i < nyright * nx; i++)
-      perm[nyleft * nx + i] = pright[i];
+      nd2d(nx, nyright, meshright, pright);
+      for (i = 0; i < nyright * nx; i++)
+        perm[nyleft * nx + i] = pright[i];
+    }
 
     /* append the separator (col midcol) */
     for (i = 0; i < nx; i++)
