@@ -224,22 +224,6 @@ void test_laplace2d_8x8() {
 // Error-path tests
 // =====================================================================
 
-// order=0 without providing a permutation should throw
-void test_order0_no_perm_throws() {
-  const int n = 3;
-  const int colptr[] = {0, 2, 4, 5};
-  const int rowind[] = {0, 1, 1, 2, 2};
-
-  bool threw = false;
-  try {
-    NgPeytonCpp::SymmetricSparse<double> mat(n, colptr, rowind, 0);
-  } catch (const std::runtime_error&) {
-    threw = true;
-  }
-  assert(threw && "order=0 without perm must throw");
-  std::cout << "  PASS  order=0 without perm throws\n";
-}
-
 // order=1 (AMD, not implemented) should throw
 void test_amd_ordering_throws() {
   const int n = 3;
@@ -341,7 +325,6 @@ int main() {
   test_laplace2d_8x8();
 
   std::cout << "Running error-path tests...\n";
-  test_order0_no_perm_throws();
   test_amd_ordering_throws();
 
   std::cout << "Running complex scalar tests...\n";

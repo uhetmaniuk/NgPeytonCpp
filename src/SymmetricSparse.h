@@ -43,36 +43,36 @@ public:
   void solve(const Scalar* rhs, Scalar* x);
 
 protected:
-  template <typename Value>
+  template <typename Value, typename Index>
   class LDLt_factor {
   public:
-    int nsuper = 0;
-    int nsub = 0;
-    int nnzl = 0;
-    std::vector<int> xsuper;
-    std::vector<int> snodes;
-    std::vector<int> xlindx;
-    std::vector<int> lindx;
-    std::vector<int> xlnz;
+    Index nsuper = 0;
+    Index nsub = 0;
+    Index nnzl = 0;
+    std::vector<Index> xsuper;
+    std::vector<Index> snodes;
+    std::vector<Index> xlindx;
+    std::vector<Index> lindx;
+    std::vector<Index> xlnz;
     std::vector<Value> lnz;
     std::vector<Value> diag;
     std::vector<Value> tmat;
-    std::vector<int> perm;
-    std::vector<int> invp;
-    std::vector<int> colcnt;
-    int tmpsiz = 0;
-    std::vector<int> split;
+    std::vector<Index> perm;
+    std::vector<Index> invp;
+    std::vector<Index> colcnt;
+    Index tmpsiz = 0;
+    std::vector<Index> split;
     std::vector<Value> newrhs;
   };
 
   int n = 0;
   bool fullrep = false;
-  std::vector<int> xadj;
-  std::vector<int> adj;
-  std::vector<Scalar> anz;
-  std::vector<int> iwork;
+  std::vector<int> xadj = {};
+  std::vector<int> adj = {};
+  std::vector<Scalar> anz = {};
+  std::vector<int> iwork = {};
 
-  std::unique_ptr<LDLt_factor<Scalar>> factor = nullptr;
+  std::unique_ptr<LDLt_factor<Scalar, int>> factor = nullptr;
 
   //
   // Protected member functions

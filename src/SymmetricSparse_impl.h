@@ -4,7 +4,6 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
-#include <chrono>
 #include <vector>
 
 #include "SymmetricSparse.h"
@@ -57,15 +56,6 @@ bool isFullRepresentation(int n, const int* colptr, const int* rowind) {
   }
   return fullrep;
 }
-
-double gtimer() {
-  using clock = std::chrono::high_resolution_clock;
-  auto now = clock::now();
-  auto ms = std::chrono::duration_cast<std::chrono::microseconds>(
-              now.time_since_epoch())
-              .count();
-  return ms / 1000.0;
-} /* gtimer */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
@@ -4453,12 +4443,10 @@ namespace NgPeytonCpp {
 template <typename Scalar>
 SymmetricSparse<Scalar>::SymmetricSparse(
   int n_, const int* colptr_, const int* rowind_, const int order_,
-  const int* perm_) {
+  const int* perm_) : n(n_) {
   int nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, iwsiz = 0, iflag = 0;
   bool sfiflg = true;
   int irow = 0, jcol = 0;
-
-  n = n_;
 
   /* Convert 0-based input to 1-based for internal use */
   std::vector<int> colptr1(n + 1);
@@ -4548,7 +4536,7 @@ SymmetricSparse<Scalar>::SymmetricSparse(
  Allocate storage for supernode partition
  ----------------------------------------*/
 
-  factor = std::unique_ptr<LDLt_factor<Scalar>>(new LDLt_factor<Scalar>());
+  factor = std::unique_ptr<LDLt_factor<Scalar, int>>(new LDLt_factor<Scalar, int>());
   factor->snodes.resize(n);
   factor->xsuper.resize(n + 1);
   factor->colcnt.resize(n);
@@ -4659,7 +4647,7 @@ Symbolic factorization
 
 /// \brief CSC matrix
 /// colptr_ Array of size 'neqns + 1' for pointing entries of column
-/// rowind_ Array of size 'nnz + 1' for indicating row indices
+/// rowind_ Array of size 'nnz' for indicating row indices
 /// nzvals_
 template <typename Scalar>
 template <typename Index>
