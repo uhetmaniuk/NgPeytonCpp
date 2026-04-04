@@ -589,6 +589,7 @@ template <typename Index>
 void chordr(
   Index neqns, const Index* xadj, const Index* adjncy, Index* perm, Index* invp,
   Index* colcnt, Index* parent, Index* fson, Index* brothr, Index* invpos) {
+  (void)xadj; (void)adjncy;
   /*       ---------------------------------------------------------- */
   /*       COMPUTE A BINARY REPRESENTATION OF THE ELIMINATION TREE, */
   /*       SO THAT EACH "LAST CHILD" MAXIMIZES AMONG ITS SIBLINGS THE */
@@ -3023,6 +3024,7 @@ int symfc2(
   Index* invp, Index* colcnt, Index nsuper, Index* xsuper, Index* snode,
   Index nofsub, Index* xlindx, Index* lindx, Index* xlnz, Index* mrglnk,
   Index* rchlnk, Index* marker, Index& flag) {
+  (void)adjlen; (void)nofsub;
   /* Local variables */
   Index i, knz, head, node, tail, pcol, newi, jptr, kptr, jsup, ksup, psup,
     nzbeg, nzend, width, nexti, point, jnzbeg, knzbeg, length, jnzend, jwidth,
@@ -4401,6 +4403,7 @@ void sfinit(
   Index neqns, Index nnza, Index* xadj, Index* adjncy, Index* perm, Index* invp,
   Index* colcnt, Index& nnzl, Index& nsub, Index& nsuper, Index* snode,
   Index* xsuper, Index iwsiz, Index* iwork, Index& iflag) {
+  (void)nnza;
   iflag = 0;
   if (iwsiz < neqns * 7 + 3) {
     iflag = -1;
