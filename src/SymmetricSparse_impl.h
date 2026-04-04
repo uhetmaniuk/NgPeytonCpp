@@ -3318,9 +3318,10 @@ namespace NgPeytonCpp {
 
                 /* Parameter adjustments */
                 --y;
+                --apnt;
                 --a;
 
-                for (j = 0; j < n; ++j) {
+                for (j = 1; j <= n; ++j) {
                     jj = apnt[j];
                     ii = apnt[j + 1] - m;
                     z2 = -a[jj];
@@ -3380,21 +3381,26 @@ namespace NgPeytonCpp {
                 /*       FOR EVERY COLUMN JCOL IN THE SUPERNODE ... */
                 /*       ------------------------------------------ */
 
+                /* Parameter adjustments */
+                --x;
+                --xpnt;
+
                 mm = m;
-                jpnt = xpnt[0];
-                for (jcol = 0; jcol < n; ++jcol) {
+                jpnt = xpnt[1];
+                for (jcol = 1; jcol <= n; ++jcol) {
 
                     /*           ---------------------------------- */
                     /*           UPDATE JCOL WITH PREVIOUS COLUMNS. */
                     /*           ---------------------------------- */
-                    if (jcol > 0) {
-                        smxpy1(mm, jcol, &x[jpnt - 1], xpnt, x);
+                    if (jcol > 1) {
+                        Index j2 = jcol - 1;
+                        smxpy1(mm, j2, &x[jpnt], &xpnt[1], &x[1]);
                     }
 
                     /*           --------------------------- */
                     /*           COMPUTE THE DIAGONAL ENTRY. */
                     /*           --------------------------- */
-                    diag = x[jpnt - 1];
+                    diag = x[jpnt];
                     if (diag == static_cast<Scalar>(0.0)) {
                         iflag = 1;
                         return;
@@ -3406,7 +3412,7 @@ namespace NgPeytonCpp {
                     /*           ---------------------------------------------------- */
                     --mm;
                     ++jpnt;
-                    scal(mm, diag, &x[jpnt - 1]);
+                    scal(mm, diag, &x[jpnt]);
                     jpnt += mm;
                 }
             } /* pchol */
@@ -3608,7 +3614,7 @@ namespace NgPeytonCpp {
 /*       LDY             -   LENGTH OF FIRST COLUMN OF Y. */
 
 /*   UPDATED PARAMETERS - */
-/*       Y(*)            -   ON OUTPUT, Y = Y + AX. */
+/*       Y(*)            -   ON OUTPUT, Y = Y + X * A */
 
 /* *********************************************************************** */
 
@@ -3616,11 +3622,18 @@ namespace NgPeytonCpp {
             void mmpy(Index m, Index n, Index q, Index *split, Index *xpnt, Scalar *x,
                       Scalar *y, Index ldy) {
                 Index nn, blk, fstcol;
-                blk = 0;
-                fstcol = 0;
-                while (fstcol < n) {
+
+                /* Parameter adjustments */
+                --y;
+                --x;
+                --xpnt;
+                --split;
+
+                blk = 1;
+                fstcol = 1;
+                while (fstcol <= n) {
                     nn = split[blk];
-                    mmpy1(m, nn, q, &xpnt[fstcol], x, y, ldy);
+                    mmpy1(m, nn, q, &xpnt[fstcol], &x[1], &y[1], ldy);
                     fstcol += nn;
                     ++blk;
                 }
@@ -3740,61 +3753,61 @@ namespace NgPeytonCpp {
                 --xlnz;
                 --lindx;
                 --xlindx;
+                --xsuper;
 
                 /*       ------------------------ */
                 /*       FORWARD SUBSTITUTION ... */
                 /*       ------------------------ */
-                fjcol = xsuper[0];
+                fjcol = xsuper[1];
                 for (jsup = 1; jsup <= nsuper; ++jsup) {
-                    ljcol = xsuper[jsup];
+                    ljcol = xsuper[jsup + 1]  - 1;
                     ixstrt = xlnz[fjcol];
                     jpnt = xlindx[jsup];
-                    for (jcol = fjcol; jcol < ljcol; ++jcol) {
-                        ixstop = xlnz[jcol + 1];
+                    for (jcol = fjcol; jcol <= ljcol; ++jcol) {
+                        ixstop = xlnz[jcol + 1] - 1;
                         t = rhs[jcol];
                         ipnt = jpnt + 1;
-                        for (ix = ixstrt + 1; ix < ixstop; ++ix) {
+                        for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
                             i = lindx[ipnt];
                             z2 = t * lnz[ix];
-                            z1 = rhs[i] - z2;
-                            rhs[i] = z1;
+                            rhs[i] -= z2;
                             ++ipnt;
                         }
-                        ixstrt = ixstop;
+                        ixstrt = ixstop + 1;
                         ++jpnt;
                     }
-                    fjcol = ljcol;
+                    fjcol = ljcol + 1;
                 }
 
                 /*       ------------------ */
                 /*       DIAGONAL SOLVE ... */
                 /*       ------------------ */
-                for (jcol = 1; jcol < xsuper[nsuper]; ++jcol) {
+                for (jcol = 1; jcol < xsuper[nsuper + 1]; ++jcol) {
                     rhs[jcol] = rhs[jcol] / lnz[xlnz[jcol]];
                 }
 
                 /*       ------------------------- */
                 /*       BACKWARD SUBSTITUTION ... */
                 /*       ------------------------- */
-                ljcol = xsuper[nsuper];
+                ljcol = xsuper[nsuper + 1] - 1;
                 for (jsup = nsuper; jsup >= 1; --jsup) {
-                    fjcol = xsuper[jsup - 1];
-                    ixstop = xlnz[ljcol];
-                    jpnt = xlindx[jsup] + (ljcol - fjcol - 1);
-                    for (jcol = ljcol - 1; jcol >= fjcol; --jcol) {
+                    fjcol = xsuper[jsup];
+                    ixstop = xlnz[ljcol + 1] - 1;
+                    jpnt = xlindx[jsup] + (ljcol - fjcol);
+                    for (jcol = ljcol; jcol >= fjcol; --jcol) {
                         ixstrt = xlnz[jcol];
                         ipnt = jpnt + 1;
                         t = rhs[jcol];
-                        for (ix = ixstrt + 1; ix < ixstop; ++ix) {
+                        for (ix = ixstrt + 1; ix <= ixstop; ++ix) {
                             i = lindx[ipnt];
                             t -= lnz[ix] * rhs[i];
                             ++ipnt;
                         }
                         rhs[jcol] = t;
-                        ixstop = ixstrt;
+                        ixstop = ixstrt - 1;
                         --jpnt;
                     }
-                    ljcol = fjcol;
+                    ljcol = fjcol - 1;
                 }
             } /* blkslv */
 
@@ -3870,7 +3883,10 @@ namespace NgPeytonCpp {
                 Index ncolup, kfirst, nxtcol, nxksup, nxtsup;
 
                 /* Parameter adjustments */
-                --temp;
+                if (temp) {
+                    --temp;
+                }
+                
                 --relind;
                 --indmap;
                 --length;
@@ -3884,16 +3900,13 @@ namespace NgPeytonCpp {
                 --xsuper;
 
                 iflag = 0;
+                nxtcol = 0;
 
                 /*       ----------------------------------------------------------- */
                 /*       INITIALIZE EMPTY ROW LISTS IN LINK(*) AND ZERO OUT TEMP(*). */
                 /*       ----------------------------------------------------------- */
-                for (jsup = 1; jsup <= nsuper; ++jsup) {
-                    link[jsup] = 0;
-                }
-                for (i = 1; i <= tmpsiz; ++i) {
-                    temp[i] = 0;
-                }
+                memset(link + 1, 0, nsuper * sizeof(Index));
+                memset(temp + 1, 0, tmpsiz * sizeof(Scalar));
 
                 /*       --------------------------- */
                 /*       FOR EACH SUPERNODE JSUP ... */
@@ -3968,7 +3981,7 @@ namespace NgPeytonCpp {
 
                             if (nkcols == 1) {
 
-                                /*                       ---------------------------------------------- */
+                                /*  ---------------------------------------------- */
                                 /*                       UPDATING TARGET SUPERNODE BY TRIVIAL */
                                 /*                       SUPERNODE (WITH ONE COLUMN). */
                                 /*                       KLPNT  ...  POINTER TO FIRST NONZERO IN ACTIVE */
@@ -4151,7 +4164,7 @@ namespace NgPeytonCpp {
 /*   WORKING PARAMETERS: */
 /*       IWORK           -   INTEGER WORKING STORAGE OF LENGTH */
 /*                           2*NEQNS + 2*NSUPER. */
-/*       TMPVEC          -   COMPLEX*16 WORKING STORAGE OF LENGTH */
+/*       TMPVEC          -   SCALAR WORKING STORAGE OF LENGTH */
 /*                           NEQNS. */
 
 /* *********************************************************************** */
@@ -4161,6 +4174,18 @@ namespace NgPeytonCpp {
                         Index *xlindx, Index *lindx, Index *xlnz, Scalar *lnz, Scalar *diag,
                         Index iwsiz, Index *iwork, Index tmpsiz, Scalar *tmpvec,
                         Index &iflag) {
+                /* Parameter adjustments */
+                --tmpvec;
+                --iwork;
+                --diag;
+                --lnz;
+                --xlnz;
+                --lindx;
+                --xlindx;
+                --split;
+                --snode;
+                --xsuper;
+
                 iflag = 0;
                 if (iwsiz < (neqns << 1) + (nsuper << 1)) {
                     iflag = -3;
@@ -4177,10 +4202,10 @@ namespace NgPeytonCpp {
                     return;
                 }
 
-                blkfc2(nsuper, xsuper, snode, split, xlindx, lindx,
-                       xlnz, lnz, iwork, &iwork[nsuper],
-                       &iwork[(nsuper << 1)], &iwork[(nsuper << 1) + neqns], tmpsiz,
-                       tmpvec, iflag);
+                blkfc2(nsuper, &xsuper[1], &snode[1], &split[1], &xlindx[1], &lindx[1],
+                       &xlnz[1], &lnz[1], &iwork[1], &iwork[nsuper + 1],
+                       &iwork[(nsuper << 1) + 1], &iwork[(nsuper << 1) + neqns + 1], tmpsiz,
+                       &tmpvec[1], iflag);
 
                 if (iflag == -1) {
                     std::cerr << "\n";
@@ -4195,8 +4220,8 @@ namespace NgPeytonCpp {
                     return;
                 }
                 if (iflag == 0) {
-                    for (Index jcol = 0; jcol < neqns; ++jcol) {
-                        diag[jcol] = lnz[xlnz[jcol] - 1];
+                    for (Index jcol = 1; jcol <= neqns; ++jcol) {
+                        diag[jcol] = lnz[xlnz[jcol]];
                     }
                 }
             } /* blkfct */
@@ -4279,31 +4304,31 @@ namespace NgPeytonCpp {
                 return;
             }
 
-            /*       ------------------------------------------ */
-            /*       COMPUTE ELIMINATION TREE AND POSTORDERING. */
-            /*       ------------------------------------------ */
+            /* ------------------------------------------ */
+            /* COMPUTE ELIMINATION TREE AND POSTORDERING. */
+            /* ------------------------------------------ */
             f2c::etordr(neqns, xadj, adjncy, perm, invp, iwork,
                         &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
 
-            /*       --------------------------------------------- */
-            /*       COMPUTE ROW AND COLUMN FACTOR NONZERO COUNTS. */
-            /*       --------------------------------------------- */
+            /* --------------------------------------------- */
+            /* COMPUTE ROW AND COLUMN FACTOR NONZERO COUNTS. */
+            /* --------------------------------------------- */
             f2c::fcnthn(neqns, xadj, adjncy, perm, invp, iwork,
                         snode, colcnt, nnzl, &iwork[neqns],
                         &iwork[(neqns << 1)], xsuper, &iwork[neqns * 3],
                         &iwork[(neqns << 2) + 1], &iwork[neqns * 5 + 2],
                         &iwork[neqns * 6 + 3]);
 
-            //       ---------------------------------------------------------
-            //       REARRANGE CHILDREN SO THAT THE LAST CHILD HAS THE MAXIMUM
-            //       NUMBER OF NONZEROS IN ITS COLUMN OF L.
-            //       ---------------------------------------------------------
+            // ---------------------------------------------------------
+            // REARRANGE CHILDREN SO THAT THE LAST CHILD HAS THE MAXIMUM
+            // NUMBER OF NONZEROS IN ITS COLUMN OF L.
+            // ---------------------------------------------------------
             f2c::chordr(neqns, xadj, adjncy, perm, invp, colcnt, iwork,
                         &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
 
-            //       ----------------
-            //       FIND SUPERNODES.
-            //       ----------------
+            // ----------------
+            // FIND SUPERNODES.
+            // ----------------
             f2c::fsup1(neqns, iwork, colcnt, nsub, nsuper, snode);
             f2c::fsup2(neqns, nsuper, snode, xsuper);
         } /* sfinit */
@@ -4418,9 +4443,6 @@ namespace NgPeytonCpp {
         // ----------------------------------------
 
         factor = std::unique_ptr<LDLt_factor < Scalar, Index> > (new LDLt_factor<Scalar, Index>());
-        factor->snodes.resize(n);
-        factor->xsuper.resize(n + 1);
-        factor->colcnt.resize(n);
         factor->perm.resize(n);
         factor->invp.resize(n);
 
@@ -4432,19 +4454,25 @@ namespace NgPeytonCpp {
             // ------------------------
             // Multiple Minimum Degree
             // ------------------------
-            details::f2c::ordmmd<Index>(n, &xadj2[0], &adj2[0], &factor->invp[0],
+            factor->snodes.resize(n);
+            factor->xsuper.resize(n + 1);
+            factor->colcnt.resize(n);
+           details::f2c::ordmmd<Index>(n, &xadj2[0], &adj2[0], &factor->invp[0],
                                         &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
                                         factor->nsub, &factor->colcnt[0], factor->nsuper,
                                         &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
         } else if (order_ == 1) {
             printf(" AMD not implemented yet, use MMD !\n");
+            factor->snodes.resize(n);
+            factor->xsuper.resize(n + 1);
+            factor->colcnt.resize(n);
             details::f2c::ordmmd<Index>(n, &xadj2[0], &adj2[0], &factor->invp[0],
                                         &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
                                         factor->nsub, &factor->colcnt[0], factor->nsuper,
                                         &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
         }
 #ifdef METIS
-                                                                                                                                    else if (order_ == 2) {
+       else if (order_ == 2) {
 
     /* ----------------------
        Node Nested Dissection
@@ -4466,9 +4494,9 @@ namespace NgPeytonCpp {
     METIS_NodeND(&n, &xadj2[0], &adj2[0], &numflag, options, &factor->perm[0],
                  &factor->invp[0]);
   } else if (order_ == 3) {
-    /* ----------------------
-       Edge Nested Dissection
-       ---------------------- */
+    // ------------------------
+    //  Edge Nested Dissection
+    // ------------------------
     int numflag = 1, options[8];
     options[0] = 0;
     METIS_EdgeND(&n, &xadj2[0], &adj2[0], &numflag, options, &factor->perm[0],
@@ -4488,8 +4516,15 @@ namespace NgPeytonCpp {
         // ----------------------
         // Symbolic factorization
         // ----------------------
+#ifdef METIS
         if (order_ >= 0 && order_ <= 3) {
+#else
+        if ((order_ == 0) || (order_ == 1)) {
+#endif
             /* not needed when MMD has been called */
+            factor->snodes.resize(n);
+            factor->xsuper.resize(n + 1);
+            factor->colcnt.resize(n);
             for (Index i = 0; i < iwsiz; i++)
                 iwork[i] = 0;
             details::sfinit(n, nnza, &xadj[0], &adj[0],
