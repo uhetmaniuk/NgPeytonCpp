@@ -2433,7 +2433,7 @@ namespace NgPeytonCpp
 					dhead[ndeg] = node + 1;
 					if (fnode > 0)
 					{
-						dbakw[fnode] = node + 1;
+						dbakw[fnode - 1] = node + 1;
 					}
 					dbakw[node] = -ndeg;
 				}
@@ -3124,7 +3124,7 @@ namespace NgPeytonCpp
 				Index delta, maxint;
 
 				iflag = 0;
-				if (iwsiz < neqns << 2)
+				if (iwsiz < 4 * neqns)
 				{
 					iflag = -1;
 					std::cerr << "\n";
