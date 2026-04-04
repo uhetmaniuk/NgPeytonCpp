@@ -1,9 +1,11 @@
 #include <cassert>
 #include <cmath>
+#include <complex>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 #include <unistd.h>
 
@@ -219,6 +221,111 @@ void test_laplace2d_8x8() {
 }
 
 // =====================================================================
+// Error-path tests
+// =====================================================================
+
+// order=0 without providing a permutation should not crash
+// (it skips ordering and symbolic factorization may produce empty factor)
+void test_order0_no_perm() {
+  const int n = 3;
+  const int colptr[] = {0, 2, 4, 5};
+  const int rowind[] = {0, 1, 1, 2, 2};
+
+  // order=0, perm=nullptr — constructor should not crash
+  // (it won't set up a valid ordering, so we just check construction)
+  NgPeytonCpp::SymmetricSparse<double> mat(n, colptr, rowind, 0);
+  std::cout << "  PASS  order=0 without perm does not crash\n";
+}
+
+// order=1 (AMD, not implemented) should throw
+void test_amd_ordering_throws() {
+  const int n = 3;
+  const int colptr[] = {0, 2, 4, 5};
+  const int rowind[] = {0, 1, 1, 2, 2};
+
+  bool threw = false;
+  try {
+    NgPeytonCpp::SymmetricSparse<double> mat(n, colptr, rowind, 1);
+  } catch (const std::runtime_error&) {
+    threw = true;
+  }
+  assert(threw && "order=1 (AMD) must throw");
+  std::cout << "  PASS  AMD ordering (order=1) throws\n";
+}
+
+// =====================================================================
+// Complex scalar test
+// =====================================================================
+
+// 3x3 tridiagonal with complex<double>
+// A = [4 -1 0; -1 4 -1; 0 -1 4] (same as real, but complex type)
+// x = {1+i, 2+i, 3+i}
+// Ax: row0 = 4(1+i) - (2+i) = 2+3i
+//     row1 = -(1+i) + 4(2+i) - (3+i) = 4+2i
+//     row2 = -(2+i) + 4(3+i) = 10+3i
+void test_complex_3x3_tridiagonal() {
+  using Cpx = std::complex<double>;
+  const int n = 3;
+  const int colptr[] = {0, 2, 4, 5};
+  const int rowind[] = {0, 1, 1, 2, 2};
+  const Cpx nzvals[] = {Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0)};
+
+  const Cpx x_exact[] = {Cpx(1, 1), Cpx(2, 1), Cpx(3, 1)};
+  const Cpx rhs[] = {Cpx(2, 3), Cpx(4, 2), Cpx(10, 3)};
+
+  // Identity ordering
+  {
+    auto perm = identity_perm(n);
+    NgPeytonCpp::SymmetricSparse<Cpx> mat(n, colptr, rowind, 0, &perm[0]);
+    mat.ldlTFactorize(colptr, rowind, nzvals);
+    Cpx x[3] = {};
+    mat.solve(rhs, x);
+    const double tol = 1e-12;
+    for (int i = 0; i < n; ++i) {
+      assert(std::abs(x[i] - x_exact[i]) < tol);
+    }
+    std::cout << "  PASS  complex 3x3 tridiagonal (identity)\n";
+  }
+
+  // MMD ordering
+  {
+    NgPeytonCpp::SymmetricSparse<Cpx> mat(n, colptr, rowind, -1);
+    mat.ldlTFactorize(colptr, rowind, nzvals);
+    Cpx x[3] = {};
+    mat.solve(rhs, x);
+    const double tol = 1e-12;
+    for (int i = 0; i < n; ++i) {
+      assert(std::abs(x[i] - x_exact[i]) < tol);
+    }
+    std::cout << "  PASS  complex 3x3 tridiagonal (MMD)\n";
+  }
+}
+
+// 4x4 complex diagonal: A = diag(2+i, 3+2i, 5+i, 7+3i)
+// x = {1, 1, 1, 1}, rhs = diag values
+void test_complex_4x4_diagonal() {
+  using Cpx = std::complex<double>;
+  const int n = 4;
+  const int colptr[] = {0, 1, 2, 3, 4};
+  const int rowind[] = {0, 1, 2, 3};
+  const Cpx nzvals[] = {Cpx(2, 1), Cpx(3, 2), Cpx(5, 1), Cpx(7, 3)};
+
+  const Cpx rhs[] = {Cpx(2, 1), Cpx(3, 2), Cpx(5, 1), Cpx(7, 3)};
+  const Cpx x_exact[] = {Cpx(1, 0), Cpx(1, 0), Cpx(1, 0), Cpx(1, 0)};
+
+  // MMD ordering
+  NgPeytonCpp::SymmetricSparse<Cpx> mat(n, colptr, rowind, -1);
+  mat.ldlTFactorize(colptr, rowind, nzvals);
+  Cpx x[4] = {};
+  mat.solve(rhs, x);
+  const double tol = 1e-12;
+  for (int i = 0; i < n; ++i) {
+    assert(std::abs(x[i] - x_exact[i]) < tol);
+  }
+  std::cout << "  PASS  complex 4x4 diagonal (MMD)\n";
+}
+
+// =====================================================================
 int main() {
   signal(SIGALRM, timeout_handler);
   std::cout << "Running solve tests (identity + MMD), 0-based indices...\n";
@@ -229,6 +336,15 @@ int main() {
   test_5x5_arrow();
   test_5x5_dense();
   test_laplace2d_8x8();
+
+  std::cout << "Running error-path tests...\n";
+  test_order0_no_perm();
+  test_amd_ordering_throws();
+
+  std::cout << "Running complex scalar tests...\n";
+  test_complex_3x3_tridiagonal();
+  test_complex_4x4_diagonal();
+
   std::cout << "All tests passed.\n";
   return 0;
 }
