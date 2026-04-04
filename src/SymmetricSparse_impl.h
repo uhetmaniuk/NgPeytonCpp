@@ -4,7 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
-#include <sys/time.h>
+#include <chrono>
 #include <vector>
 
 #include "SymmetricSparse.h"
@@ -67,10 +67,11 @@ namespace NgPeytonCpp
 
 		double gtimer()
 		{
-			timeval tp;
-			struct timezone tz;
-			gettimeofday(&tp, &tz);
-			return 1000.0 * tp.tv_sec + tp.tv_usec / 1000.0;
+			using clock = std::chrono::high_resolution_clock;
+			auto now = clock::now();
+			auto ms = std::chrono::duration_cast<std::chrono::microseconds>(
+			              now.time_since_epoch()).count();
+			return ms / 1000.0;
 		} /* gtimer */
 
 		/* *********************************************************************** */
@@ -1327,7 +1328,7 @@ namespace NgPeytonCpp
 					else
 					{
 						ncols = 1;
-						used = height << 1;
+						used = height * 2;
 						--height;
 					}
 
@@ -3141,7 +3142,7 @@ namespace NgPeytonCpp
 				delta = 0;
 				maxint = 32767;
 				genmmd(neqns, xadj, adjncy, invp, perm, delta, iwork,
-				       &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3],
+				       &iwork[neqns], &iwork[2 * neqns], &iwork[3 * neqns],
 				       maxint, nnzl, nofsub, colcnt, nsuper, xsuper, snode);
 				sfiflg = false;
 			} /* ordmmd */
@@ -3555,13 +3556,13 @@ namespace NgPeytonCpp
 			            Index& flag)
 			{
 				flag = 0;
-				if (iwsiz < nsuper + (neqns << 1) + 1)
+				if (iwsiz < nsuper + 2 * neqns + 1)
 				{
 					flag = -1;
 					std::cerr << "\n";
 					std::cerr << "*** INTEGER WORK STORAGE = " << iwsiz << "\n";
 					std::cerr << "*** IS SMALLER THAN REQUIRED = "
-						<< nsuper + (neqns << 1) + 1 << "\n";
+						<< nsuper + 2 * neqns + 1 << "\n";
 					std::cerr << "\n";
 					return;
 				}
@@ -4615,20 +4616,20 @@ namespace NgPeytonCpp
 
 				/* Function Body */
 				iflag = 0;
-				if (iwsiz < (neqns << 1) + (nsuper << 1))
+				if (iwsiz < 2 * neqns + 2 * nsuper)
 				{
 					iflag = -3;
 					std::cerr << "\n";
 					std::cerr << "*** INTEGER WORK SPACE = " << iwsiz << "\n";
 					std::cerr << "*** IS SMALLER THAN REQUIRED = "
-						<< (nsuper << 1) + (neqns << 1) << "\n";
+						<< 2 * nsuper + 2 * neqns << "\n";
 					std::cerr << "\n";
 					return;
 				}
 
 				blkfc2(nsuper, xsuper, snode, split, xlindx, lindx,
 				       &xlnz[1], &lnz[1], iwork, &iwork[nsuper],
-				       &iwork[(nsuper << 1)], &iwork[(nsuper << 1) + neqns], tmpsiz,
+				       &iwork[2 * nsuper], &iwork[2 * nsuper + neqns], tmpsiz,
 				       tmpvec, iflag);
 
 				if (iflag == -1)
@@ -4744,23 +4745,23 @@ namespace NgPeytonCpp
 			/*       COMPUTE ELIMINATION TREE AND POSTORDERING. */
 			/*       ------------------------------------------ */
 			f2c::etordr(neqns, xadj, adjncy, perm, invp, iwork,
-			            &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
+			            &iwork[neqns], &iwork[2 * neqns], &iwork[3 * neqns]);
 
 			/*       --------------------------------------------- */
 			/*       COMPUTE ROW AND COLUMN FACTOR NONZERO COUNTS. */
 			/*       --------------------------------------------- */
 			f2c::fcnthn(neqns, xadj, adjncy, perm, invp, iwork,
 			            snode, colcnt, nnzl, &iwork[neqns],
-			            &iwork[(neqns << 1)], xsuper, &iwork[neqns * 3],
-			            &iwork[(neqns << 2) + 1], &iwork[neqns * 5 + 2],
-			            &iwork[neqns * 6 + 3]);
+			            &iwork[2 * neqns], xsuper, &iwork[3 * neqns],
+			            &iwork[4 * neqns + 1], &iwork[5 * neqns + 2],
+			            &iwork[6 * neqns + 3]);
 
 			/*       --------------------------------------------------------- */
 			/*       REARRANGE CHILDREN SO THAT THE LAST CHILD HAS THE MAXIMUM */
 			/*       NUMBER OF NONZEROS IN ITS COLUMN OF L. */
 			/*       --------------------------------------------------------- */
 			f2c::chordr(neqns, xadj, adjncy, perm, invp, colcnt, iwork,
-			            &iwork[neqns], &iwork[(neqns << 1)], &iwork[neqns * 3]);
+			            &iwork[neqns], &iwork[2 * neqns], &iwork[3 * neqns]);
 
 			/*       ---------------- */
 			/*       FIND SUPERNODES. */
@@ -4885,6 +4886,10 @@ namespace NgPeytonCpp
 			                          &factor->perm[0], iwsiz, &iwork[0], factor->nnzl,
 			                          factor->nsub, &factor->colcnt[0], factor->nsuper,
 			                          &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+			if (iflag != 0)
+			{
+				throw std::runtime_error("ordmmd failed (insufficient workspace)");
+			}
 		}
 		else if (order_ == 1)
 		{
@@ -4934,36 +4939,39 @@ namespace NgPeytonCpp
 				factor->invp[factor->perm[i] - 1] = i + 1;
 			}
 		}
-		xadj2.clear();
-		adj2.clear();
-
 		/* ----------------------
 Symbolic factorization
 ---------------------- */
 		if (order_ >= 0 && order_ <= 3)
 		{
 			/* not needed when MMD has been called */
-			for (i = 0; i < iwsiz; i++)
-				iwork[i] = 0;
+			std::fill(iwork.begin(), iwork.end(), 0);
 			details::sfinit(n, nnza, &xadj[0], &adj[0],
 			                &factor->perm[0], &factor->invp[0], &factor->colcnt[0],
 			                factor->nnzl, factor->nsub, factor->nsuper,
 			                &factor->snodes[0], &factor->xsuper[0], iwsiz, &iwork[0],
 			                iflag);
+			if (iflag != 0)
+			{
+				throw std::runtime_error("sfinit failed (insufficient workspace)");
+			}
 		}
 
 		factor->xlindx.resize(n + 1);
 		factor->lindx.resize(factor->nsub);
 		factor->xlnz.resize(n + 1);
 
-		for (i = 0; i < iwsiz; i++)
-			iwork[i] = 0;
+		std::fill(iwork.begin(), iwork.end(), 0);
 
 		details::f2c::symfct(n, nnza, &xadj[0], &adj[0],
 		                     &factor->perm[0], &factor->invp[0], &factor->colcnt[0],
 		                     factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
 		                     factor->nsub, &factor->xlindx[0], &factor->lindx[0],
 		                     &factor->xlnz[0], iwsiz, &iwork[0], iflag);
+		if (iflag != 0)
+		{
+			throw std::runtime_error("symfct failed (insufficient workspace)");
+		}
 
 		/* ---------------------------
  Prepare for Numerical factorization
@@ -5021,12 +5029,9 @@ Symbolic factorization
 
 		if (fullrep)
 		{
-			for (i = 0; i < neqns + 1; i++)
-				xadj[i] = colptr_[i];
-			for (i = 0; i < nnz; i++)
-				adj[i] = rowind_[i];
-			for (i = 0; i < nnz; i++)
-				anz[i] = nzvals_[i];
+			std::copy(colptr_, colptr_ + neqns + 1, xadj.begin());
+			std::copy(rowind_, rowind_ + nnz, adj.begin());
+			std::copy(nzvals_, nzvals_ + nnz, anz.begin());
 		}
 		else
 		{

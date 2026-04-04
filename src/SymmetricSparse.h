@@ -70,7 +70,6 @@ protected:
   std::vector<int> xadj;
   std::vector<int> adj;
   std::vector<Scalar> anz;
-  std::vector<Scalar> adiag; // <- Does not appear to be used
   std::vector<int> iwork;
 
   std::unique_ptr<LDLt_factor<Scalar>> factor = nullptr;
