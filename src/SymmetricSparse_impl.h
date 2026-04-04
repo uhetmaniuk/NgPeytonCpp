@@ -4725,6 +4725,12 @@ void SymmetricSparse<Scalar>::ldlTFactorize(
     neqns, nsuper, &myMat.xsuper[0], &myMat.snodes[0], &myMat.split[0],
     &myMat.xlindx[0], &myMat.lindx[0], &myMat.xlnz[0], &myMat.lnz[0],
     &myMat.diag[0], iwsiz, &iwork[0], tmpsiz, &myMat.tmat[0], iflag);
+
+  /* Free temporary storage no longer needed after factorization */
+  std::vector<int>().swap(iwork);
+  std::vector<int>().swap(xadj);
+  std::vector<int>().swap(adj);
+  std::vector<Scalar>().swap(anz);
 }
 
 template <typename Scalar>
