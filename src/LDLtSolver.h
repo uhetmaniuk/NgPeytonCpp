@@ -1,7 +1,7 @@
 #ifndef NGPEYTONCPP_LDLTSOLVER_H
 #define NGPEYTONCPP_LDLTSOLVER_H
 
-#include <memory>
+#include <type_traits>
 #include <vector>
 
 namespace NgPeytonCpp {
