@@ -64,8 +64,8 @@ bool isFullRepresentation(int n, const int* colptr, const int* rowind) {
 // -----------------------------------------------------------------------
 template <typename Scalar, typename Index>
 void assmb(
-  Index m, Index q, Scalar* y, Index* relind, Index* xlnz, Scalar* lnz,
-  Index lda) {
+  Index m, Index q, Scalar* __restrict y, Index* __restrict relind,
+  Index* __restrict xlnz, Scalar* __restrict lnz, Index lda) {
   Index ir, il1, iy1, icol, ycol, lbot1, yoff1;
 
   yoff1 = 0;
@@ -1027,9 +1027,7 @@ void fnsplt(
   /*       --------------- */
   /*       INITIALIZATION. */
   /*       --------------- */
-  for (Index kcol = 0; kcol < neqns; ++kcol) {
-    split[kcol] = 0;
-  }
+  std::fill(split, split + neqns, Index(0));
 
   /* Parameter adjustments */
   --split;
@@ -1400,9 +1398,11 @@ void igathr(
 
 template <typename Scalar, typename Index>
 void inpnv(
-  Index neqns, Index* xadjf, Index* adjf, Scalar* anzf, Index* perm,
-  Index* invp, Index nsuper, Index* xsuper, Index* xlindx, Index* lindx,
-  Index* xlnz, Scalar* lnz, Index iwsiz, Index* offset, Index& iflag) {
+  Index neqns, Index* __restrict xadjf, Index* __restrict adjf,
+  Scalar* __restrict anzf, Index* __restrict perm, Index* __restrict invp,
+  Index nsuper, Index* __restrict xsuper, Index* __restrict xlindx,
+  Index* __restrict lindx, Index* __restrict xlnz, Scalar* __restrict lnz,
+  Index iwsiz, Index* __restrict offset, Index& iflag) {
   /* System generated locals */
   Index i__4;
 
@@ -3225,7 +3225,8 @@ void scal(int64_t n, Scalar a, Scalar* x) {
 /* *********************************************************************** */
 
 template <typename Scalar, typename Index>
-void smxpy1(Index m, Index n, Scalar* y, Index* apnt, Scalar* a) {
+void smxpy1(Index m, Index n, Scalar* __restrict y, Index* __restrict apnt,
+            Scalar* __restrict a) {
   /* System generated locals */
   Index i__3, i__4, i__5;
   Scalar z__2;
@@ -3379,7 +3380,8 @@ void pchol(Index m, Index n, Index* xpnt, Scalar* x, Index& iflag) {
 
 template <typename Scalar, typename Index>
 int mmpy1(
-  Index m, Index n, Index q, Index* xpnt, Scalar* x, Scalar* y, Index ldy) {
+  Index m, Index n, Index q, Index* __restrict xpnt, Scalar* __restrict x,
+  Scalar* __restrict y, Index ldy) {
   /* System generated locals */
   Index i__4, i__5, i__6;
   Scalar z__1, z__2;
@@ -3470,7 +3472,8 @@ int mmpy1(
 
 template <typename Scalar, typename Index>
 void chlsup(
-  Index m, Index n, Index* split, Index* xpnt, Scalar* x, Index& iflag) {
+  Index m, Index n, Index* __restrict split, Index* __restrict xpnt,
+  Scalar* __restrict x, Index& iflag) {
   Index q, mm, nn, jblk, jpnt;
   Index fstcol, nxtcol;
 
@@ -3553,8 +3556,8 @@ void chlsup(
 
 template <typename Scalar, typename Index>
 void mmpy(
-  Index m, Index n, Index q, Index* split, Index* xpnt, Scalar* x, Scalar* y,
-  Index ldy) {
+  Index m, Index n, Index q, Index* __restrict split, Index* __restrict xpnt,
+  Scalar* __restrict x, Scalar* __restrict y, Index ldy) {
   Index nn, blk, fstcol;
   blk = 0;
   fstcol = 0;
@@ -3606,8 +3609,8 @@ void mmpy(
 
 template <typename Scalar, typename Index>
 void mmpyi_(
-  Index m, Index q, Index* xpnt, Scalar* x, Scalar d, Index* iy, Scalar* y,
-  Index* relind) {
+  Index m, Index q, Index* __restrict xpnt, Scalar* __restrict x, Scalar d,
+  Index* __restrict iy, Scalar* __restrict y, Index* __restrict relind) {
   /* Local variables */
   Scalar a, z1, z2;
   Index i, k, col, isub, ylast;
@@ -3668,8 +3671,9 @@ void mmpyi_(
 
 template <typename Scalar, typename Index>
 void blkslv(
-  Index nsuper, Index* xsuper, Index* xlindx, Index* lindx, Index* xlnz,
-  Scalar* lnz, Scalar* rhs) {
+  Index nsuper, Index* __restrict xsuper, Index* __restrict xlindx,
+  Index* __restrict lindx, Index* __restrict xlnz, Scalar* __restrict lnz,
+  Scalar* __restrict rhs) {
   /* System generated locals */
   Index i__3, i__4, i__5, i__6;
   Scalar z__1, z__2;
@@ -3847,12 +3851,8 @@ void blkfc2(
   /*       ----------------------------------------------------------- */
   /*       INITIALIZE EMPTY ROW LISTS IN LINK(*) AND ZERO OUT TEMP(*). */
   /*       ----------------------------------------------------------- */
-  for (jsup = 1; jsup <= nsuper; ++jsup) {
-    link[jsup] = 0;
-  }
-  for (i = 1; i <= tmpsiz; ++i) {
-    temp[i] = 0;
-  }
+  std::fill(link + 1, link + nsuper + 1, Index(0));
+  std::fill(temp + 1, temp + tmpsiz + 1, Scalar(0));
 
   /*       --------------------------- */
   /*       FOR EACH SUPERNODE JSUP ... */
