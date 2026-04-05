@@ -28,30 +28,22 @@ namespace NgPeytonCpp { namespace details {
 /// @param colptr   Column pointer array, length n+1 (1-based, internal)
 /// @param rowind   Row index array, length colptr[n]-1 (1-based, internal)
 /// @return         true if upper triangular entries are present
-bool isFullRepresentation(int n, const int* colptr, const int* rowind) {
-  bool fullrep = false;
-  bool notfound = true;
-  int j = 1;
-
-  while (notfound && j < n) {
+template <typename Index>
+bool isFullRepresentation(
+  Index n, const Index* __restrict colptr, const Index* __restrict rowind) {
+  for (Index j = 1; j < n; ++j) {
     // Pointer to the last entry of column j
-    int pjend = colptr[j] - 1;
+    auto pjend = colptr[j] - 1;
     if (pjend > colptr[j - 1]) {
       // There is at least one off-diagonal entry; find its row index
-      int irow = rowind[pjend - 1];
-
+      auto irow = rowind[pjend - 1];
       // Get column pointer to the first entry of irow-th column
-      int pibeg = colptr[irow - 1];
-
-      // Check to see if upper triangular part is present
-      if (rowind[pibeg - 1] != irow) {
-        fullrep = true;
-      }
-      notfound = false;
+      auto pibeg = colptr[irow - 1];
+      // Upper triangular part is present if first entry is not the diagonal
+      return rowind[pibeg - 1] != irow;
     }
-    j++;
   }
-  return fullrep;
+  return false;
 }
 
 /* *********************************************************************** */
