@@ -18,35 +18,33 @@ extern void METIS_NodeND(
   int* invp);
 #endif
 
-namespace NgPeytonCpp { namespace details {
-/**
-	* Detect whether a symmetric sparse matrix stored in 1-based CSC format
-	* uses a full representation (both triangular halves present) or only
-	* the lower triangular part.
-	*
-	* @param n        Number of columns
-	* @param colptr   Column pointer array, length n+1 (1-based, internal)
-	* @param rowind   Row index array, length colptr[n]-1 (1-based, internal)
-	* @return         true  if upper triangular entries are present (full representation)
-	*                 false if only the lower triangular part is stored
-	*/
+namespace NgPeytonCpp {
+namespace details {
+
+/// Detect whether a symmetric sparse matrix stored in 1-based CSC format
+/// uses a full representation (both triangular halves present) or only
+/// the lower triangular part.
+///
+/// @param n        Number of columns
+/// @param colptr   Column pointer array, length n+1 (1-based, internal)
+/// @param rowind   Row index array, length colptr[n]-1 (1-based, internal)
+/// @return         true if upper triangular entries are present
 bool isFullRepresentation(int n, const int* colptr, const int* rowind) {
   bool fullrep = false;
   bool notfound = true;
   int j = 1;
 
   while (notfound && j < n) {
-    /* pointer to the last entry of column j */
+    // Pointer to the last entry of column j
     int pjend = colptr[j] - 1;
     if (pjend > colptr[j - 1]) {
-      /* there is at least one off-diagonal entry,
-						 find its row index */
+      // There is at least one off-diagonal entry; find its row index
       int irow = rowind[pjend - 1];
 
-      /* get column pointer to the first entry of irow-th column */
+      // Get column pointer to the first entry of irow-th column
       int pibeg = colptr[irow - 1];
 
-      /* check to see if upper triangular part is present */
+      // Check to see if upper triangular part is present
       if (rowind[pibeg - 1] != irow) {
         fullrep = true;
       }
@@ -60,44 +58,14 @@ bool isFullRepresentation(int n, const int* colptr, const int* rowind) {
 /* *********************************************************************** */
 /* *********************************************************************** */
 
-/*   Version:        0.3 */
-/*   Last modified:  December 27, 1994 */
-/*   Authors:        Esmond G. Ng and Barry W. Peyton */
-
-/*   Mathematical Sciences Section, Oak Ridge National Laboratory */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* ************     ASSMB .... INDEXED ASSEMBLY OPERATION     ************ */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   PURPOSE: */
-/*       THIS ROUTINE PERFORMS AN INDEXED ASSEMBLY (I.E., SCATTER-ADD) */
-/*       OPERATION, ASSUMING DATA STRUCTURES USED IN SOME OF OUR SPARSE */
-/*       CHOLESKY CODES. */
-
-/*   INPUT PARAMETERS: */
-/*       M               -   NUMBER OF ROWS IN Y. */
-/*       Q               -   NUMBER OF COLUMNS IN Y. */
-/*       Y               -   BLOCK UPDATE TO BE INCORPORATED INTO FACTOR */
-/*                           STORAGE. */
-/*       RELIND          -   RELATIVE INDICES FOR MAPPING THE UPDATES */
-/*                           ONTO THE TARGET COLUMNS. */
-/*       XLNZ            -   POINTERS TO THE START OF EACH COLUMN IN THE */
-/*                           TARGET MATRIX. */
-
-/*   OUTPUT PARAMETERS: */
-/*       LNZ             -   CONTAINS COLUMNS MODIFIED BY THE UPDATE */
-/*                           MATRIX. */
-
-/* *********************************************************************** */
-
+// -----------------------------------------------------------------------
+// ASSMB — Indexed assembly (scatter-add) operation.
+// Authors: Esmond G. Ng and Barry W. Peyton (Oak Ridge, 1994)
+// -----------------------------------------------------------------------
 template <typename Scalar, typename Index>
 void assmb(
   Index m, Index q, Scalar* y, Index* relind, Index* xlnz, Scalar* lnz,
   Index lda) {
-  /* Local variables */
   Index ir, il1, iy1, icol, ycol, lbot1, yoff1;
 
   yoff1 = 0;
@@ -112,49 +80,16 @@ void assmb(
     }
     yoff1 = iy1 - icol;
   }
-} /* assmb */
+}
 
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   Version:        0.3 */
-/*   Last modified:  December 27, 1994 */
-/*   Authors:        Joseph W.H. Liu */
-
-/*   Mathematical Sciences Section, Oak Ridge National Laboratory */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* ***********     INVINV ..... CONCATENATION OF TWO INVP     ************ */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   WRITTEN BY JOSEPH LIU (JUL 17, 1985) */
-
-/*   PURPOSE: */
-/*       TO PERFORM THE MAPPING OF */
-/*           ORIGINAL-INVP --> INTERMEDIATE-INVP --> NEW INVP */
-/*       AND THE RESULTING ORDERING REPLACES INVP.  THE NEW PERMUTATION */
-/*       VECTOR PERM IS ALSO COMPUTED. */
-
-/*   INPUT PARAMETERS: */
-/*       NEQNS           -   NUMBER OF EQUATIONS. */
-/*       INVP2           -   THE SECOND INVERSE PERMUTATION VECTOR. */
-
-/*   UPDATED PARAMETERS: */
-/*       INVP            -   THE FIRST INVERSE PERMUTATION VECTOR.  ON */
-/*                           OUTPUT, IT CONTAINS THE NEW INVERSE */
-/*                           PERMUTATION. */
-
-/*   OUTPUT PARAMETER: */
-/*       PERM            -   NEW PERMUTATION VECTOR (CAN BE THE SAME AS */
-/*                           INVP2). */
-
-/* *********************************************************************** */
-
+// -----------------------------------------------------------------------
+// INVINV — Compose two inverse permutations: invp = invp2(invp),
+// and compute the forward permutation perm.
+// Author: Joseph W.H. Liu (Oak Ridge, 1985)
+// Note: perm may alias invp2.
+// -----------------------------------------------------------------------
 template <typename Index>
 void invinv(Index neqns, Index* invp, const Index* invp2, Index* perm) {
-  /* Local variables */
   Index i, node, interm;
 
   for (i = 0; i < neqns; ++i) {
@@ -166,57 +101,18 @@ void invinv(Index neqns, Index* invp, const Index* invp2, Index* perm) {
     node = invp[i] - 1;
     perm[node] = i + 1;
   }
-} /* invinv */
+}
 
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   Version:        0.3 */
-/*   Last modified:  December 27, 1994 */
-/*   Authors:        Esmond G. Ng and Barry W. Peyton */
-
-/*   Mathematical Sciences Section, Oak Ridge National Laboratory */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* ****************    FSUP2  ..... FIND SUPERNODES #2   ***************** */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   PURPOSE: */
-/*       THIS SUBROUTINE IS THE SECOND OF TWO ROUTINES FOR FINDING A */
-/*       MAXIMAL SUPERNODE PARTITION.  IT'S SOLE PURPOSE IS TO */
-/*       CONSTRUCT THE NEEDED VECTOR OF LENGTH NSUPER: XSUPER(*).  THE */
-/*       FIRST ROUTINE FSUP1 COMPUTES THE NUMBER OF SUPERNODES AND THE */
-/*       SUPERNODE MEMBERSHIP VECTOR SNODE(*), WHICH IS OF LENGTH NEQNS. */
-
-/*   ASSUMPTIONS: */
-/*       THIS ROUTINE ASSUMES A POSTORDERING OF THE ELIMINATION TREE.  IT */
-/*       ALSO ASSUMES THAT THE OUTPUT FROM FSUP1 IS AVAILABLE. */
-
-/*   INPUT PARAMETERS: */
-/*       (I) NEQNS       -   NUMBER OF EQUATIONS. */
-/*       (I) NSUPER      -   NUMBER OF SUPERNODES (<= NEQNS). */
-/*       (I) ETPAR(*)    -   ARRAY OF LENGTH NEQNS, CONTAINING THE */
-/*                           ELIMINATION TREE OF THE POSTORDERED MATRIX. */
-/*       (I) SNODE(*)    -   ARRAY OF LENGTH NEQNS FOR RECORDING */
-/*                           SUPERNODE MEMBERSHIP. */
-
-/*   OUTPUT PARAMETERS: */
-/*       (I) XSUPER(*)   -   ARRAY OF LENGTH NSUPER+1, CONTAINING THE */
-/*                           SUPERNODE PARTITIONING. */
-
-/*   FIRST CREATED ON    JANUARY 18, 1992. */
-/*   LAST UPDATED ON     NOVEMEBER 22, 1994. */
-
-/* *********************************************************************** */
-
+// -----------------------------------------------------------------------
+// FSUP2 — Build the supernode partition vector xsuper from snode.
+// Assumes a postordered elimination tree and output from fsup1.
+// Authors: Esmond G. Ng and Barry W. Peyton (Oak Ridge, 1992)
+// -----------------------------------------------------------------------
 template <typename Index>
 void fsup2(Index neqns, Index nsuper, const Index* snode, Index* xsuper) {
   Index kcol, ksup, lstsup;
-  /*       ------------------------------------------------- */
-  /*       COMPUTE THE SUPERNODE PARTITION VECTOR XSUPER(*). */
-  /*       ------------------------------------------------- */
+
+  // Compute xsuper by scanning columns right to left
   lstsup = nsuper + 1;
   for (kcol = neqns; kcol >= 1; --kcol) {
     ksup = snode[kcol - 1];
@@ -226,62 +122,18 @@ void fsup2(Index neqns, Index nsuper, const Index* snode, Index* xsuper) {
     lstsup = ksup;
   }
   xsuper[0] = 1;
-} /* fsup2 */
+}
 
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   Version:        0.3 */
-/*   Last modified:  December 27, 1994 */
-/*   Authors:        Esmond G. Ng and Barry W. Peyton */
-
-/*   Mathematical Sciences Section, Oak Ridge National Laboratory */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* ****************    FSUP1 ..... FIND SUPERNODES #1    ***************** */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   PURPOSE: */
-/*       THIS SUBROUTINE IS THE FIRST OF TWO ROUTINES FOR FINDING A */
-/*       MAXIMAL SUPERNODE PARTITION.  IT RETURNS ONLY THE NUMBER OF */
-/*       SUPERNODES NSUPER AND THE SUPERNODE MEMBERSHIP VECTOR SNODE(*), */
-/*       WHICH IS OF LENGTH NEQNS.  THE VECTORS OF LENGTH NSUPER ARE */
-/*       COMPUTED SUBSEQUENTLY BY THE COMPANION ROUTINE FSUP2. */
-
-/*   METHOD AND ASSUMPTIONS: */
-/*       THIS ROUTINE USES THE ELIMINATION TREE AND THE FACTOR COLUMN */
-/*       COUNTS TO COMPUTE THE SUPERNODE PARTITION; IT ALSO ASSUMES A */
-/*       POSTORDERING OF THE ELIMINATION TREE. */
-
-/*   INPUT PARAMETERS: */
-/*       (I) NEQNS       -   NUMBER OF EQUATIONS. */
-/*       (I) ETPAR(*)    -   ARRAY OF LENGTH NEQNS, CONTAINING THE */
-/*                           ELIMINATION TREE OF THE POSTORDERED MATRIX. */
-/*       (I) COLCNT(*)   -   ARRAY OF LENGTH NEQNS, CONTAINING THE */
-/*                           FACTOR COLUMN COUNTS: I.E., THE NUMBER OF */
-/*                           NONZERO ENTRIES IN EACH COLUMN OF L */
-/*                           (INCLUDING THE DIAGONAL ENTRY). */
-
-/*   OUTPUT PARAMETERS: */
-/*       (I) NOFSUB      -   NUMBER OF SUBSCRIPTS. */
-/*       (I) NSUPER      -   NUMBER OF SUPERNODES (<= NEQNS). */
-/*       (I) SNODE(*)    -   ARRAY OF LENGTH NEQNS FOR RECORDING */
-/*                           SUPERNODE MEMBERSHIP. */
-
-/*   FIRST CREATED ON    JANUARY 18, 1992. */
-/*   LAST UPDATED ON     NOVEMBER 11, 1994. */
-
-/* *********************************************************************** */
-
+// -----------------------------------------------------------------------
+// FSUP1 — First pass of supernode detection. Computes nsuper and snode
+// from the elimination tree and column counts. Assumes postordering.
+// Authors: Esmond G. Ng and Barry W. Peyton (Oak Ridge, 1992)
+// -----------------------------------------------------------------------
 template <typename Index>
 void fsup1(
   Index neqns, const Index* etpar, const Index* colcnt, Index& nofsub,
   Index& nsuper, Index* snode) {
-  /*       -------------------------------------------- */
-  /*       COMPUTE THE FUNDAMENTAL SUPERNODE PARTITION. */
-  /*       -------------------------------------------- */
+  // Compute the fundamental supernode partition
   nsuper = 1;
   snode[0] = 1;
   nofsub = colcnt[0];
@@ -296,8 +148,10 @@ void fsup1(
     snode[kcol] = nsuper;
     nofsub += colcnt[kcol];
   }
-} /* fsup1 */
-}}  // namespace NgPeytonCpp::details
+}
+
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 namespace NgPeytonCpp { namespace details { namespace f2c {
 /* *********************************************************************** */
@@ -4448,11 +4302,11 @@ SymmetricSparse<Scalar>::SymmetricSparse(
   bool sfiflg = true;
   int irow = 0, jcol = 0;
 
-  /* Convert 0-based input to 1-based for internal use */
+  // Convert 0-based input to 1-based for internal use
   std::vector<int> colptr1(n + 1);
   for (i = 0; i <= n; ++i)
     colptr1[i] = colptr_[i] + 1;
-  int nnz_total = colptr_[n];  // number of nonzeros (0-based: colptr[n])
+  int nnz_total = colptr_[n];
   std::vector<int> rowind1(nnz_total);
   for (i = 0; i < nnz_total; ++i)
     rowind1[i] = rowind_[i] + 1;
@@ -4468,36 +4322,20 @@ SymmetricSparse<Scalar>::SymmetricSparse(
 
   nnz = cp[n] - 1;
 
-  /* Check to see whether a full representation the symmetric
- matrix is used */
+  // Detect full vs lower-triangular representation
   fullrep = details::isFullRepresentation(n, cp, ri);
 
-  /* nnza = number of nonzeros off diagonal */
+  // nnza = number of off-diagonal nonzeros in full representation
   nnza = (fullrep) ? nnz - n : 2 * (nnz - n);
   iwsiz = 7 * n + 3;
 
-  /* --------------------------------------------------
-		Allocate matrix storage required for reordering
-		and symbolic factorization.
- -------------------------------------------------- */
-
-  /* adj, xadj contain the structure of the
- full representation of the original matrix */
-
+  // Allocate adjacency storage (full representation, no diagonal)
   xadj.resize(n + 1);
   adj.resize(nnza + n);
-
-  /* ----------------------------------------------------------
- convert the indices and pointers of the lower triangular
- representation of a symmetric HB matrix to its full
- representation.
- ---------------------------------------------------------- */
-
   iwork.resize(iwsiz);
 
   if (fullrep) {
-    /* make a copy of the non-zero structure, take out the
- diagonals */
+    // Copy structure, removing diagonal entries
     xadj[0] = 1;
     for (i = 0; i < n; i++) {
       xadj[i + 1] = xadj[i] + (cp[i + 1] - cp[i] - 1);
@@ -4518,24 +4356,14 @@ SymmetricSparse<Scalar>::SymmetricSparse(
       }
     }
   } else {
-    /* convert */
+    // Convert lower-triangular to full representation
     details::f2c::ilo2ho(n, nnza, cp, ri, &xadj[0], &adj[0], &iwork[0]);
   }
 
-  /* -------------------------------------------------
- Make a copy of the converted matrix for reordering
- ------------------------------------------------- */
-
-  /* Since reordering will destroy the original matrix
- we need to make an extra copy of the indices and pointers
- of the full representation of the original matrix.  */
-
+  // Copy adjacency for reordering (ordmmd destroys the input)
   std::vector<int> adj2(adj), xadj2(xadj);
 
-  /* ----------------------------------------
- Allocate storage for supernode partition
- ----------------------------------------*/
-
+  // Allocate supernode partition storage
   factor = std::unique_ptr<LDLt_factor<Scalar, int>>(new LDLt_factor<Scalar, int>());
   factor->snodes.resize(n);
   factor->xsuper.resize(n + 1);
@@ -4563,30 +4391,14 @@ SymmetricSparse<Scalar>::SymmetricSparse(
   }
 #ifdef METIS
   else if (order_ == 2) {
-    /* ----------------------
-			   Node Nested Dissection
-			   ---------------------- */
-
+    // METIS Node Nested Dissection
     int numflag = 1, options[8];
     options[0] = 0;
-
-    /* use default options now
-			  options[1] = 3;
-			  options[2] = 1;
-			  options[3] = 2;
-			  options[4] = 0;
-			  options[5] = 3;
-			  options[6] = 0;
-			  options[7] = 1;
-			*/
-
     METIS_NodeND(
       &n, &xadj2[0], &adj2[0], &numflag, options, &factor->perm[0],
       &factor->invp[0]);
   } else if (order_ == 3) {
-    /* ----------------------
-			   Edge Nested Dissection
-			   ---------------------- */
+    // METIS Edge Nested Dissection
     int numflag = 1, options[8];
     options[0] = 0;
     METIS_EdgeND(
@@ -4595,17 +4407,15 @@ SymmetricSparse<Scalar>::SymmetricSparse(
   }
 #endif
   else if ((order_ == 0) && (pm)) {
-    /* use the input permutation vector (already converted to 1-based) */
+    // Use the input permutation vector (already converted to 1-based)
     for (i = 0; i < n; i++) {
       factor->perm[i] = pm[i];
       factor->invp[factor->perm[i] - 1] = i + 1;
     }
   }
-  /* ----------------------
-Symbolic factorization
----------------------- */
+
+  // Symbolic factorization (not needed when MMD has been called)
   if (order_ >= 0 && order_ <= 3) {
-    /* not needed when MMD has been called */
     std::fill(iwork.begin(), iwork.end(), 0);
     details::sfinit(
       n, nnza, &xadj[0], &adj[0], &factor->perm[0], &factor->invp[0],
@@ -4631,11 +4441,7 @@ Symbolic factorization
     throw std::runtime_error("symfct failed (insufficient workspace)");
   }
 
-  /* ---------------------------
- Prepare for Numerical factorization
- and triangular solve.
- --------------------------- */
-
+  // Prepare for numerical factorization and triangular solve
   factor->split.resize(n);
 
   int cachsz_ = 700;
@@ -4645,10 +4451,10 @@ Symbolic factorization
     &factor->split[0]);
 }
 
-/// \brief CSC matrix
-/// colptr_ Array of size 'neqns + 1' for pointing entries of column
-/// rowind_ Array of size 'nnz' for indicating row indices
-/// nzvals_
+/// \brief Numerical LDL' factorization.
+/// \param colptr_ Column pointer array, length n+1 (0-based)
+/// \param rowind_ Row index array, length colptr[n] (0-based)
+/// \param nzvals_ Nonzero values array
 template <typename Scalar>
 template <typename Index>
 void SymmetricSparse<Scalar>::ldlTFactorize(
@@ -4678,8 +4484,7 @@ void SymmetricSparse<Scalar>::ldlTFactorize(
 
   anz.resize(2 * nnz - neqns);
 
-  /* Aug 30, 2008, allocate extra space for diagonal extraction
- the extra space is not used in the LDLT factorization */
+  // Allocate extra space for diagonal extraction (not used in LDL')
   maxsup = 0;
   nnzlplus = nnzl;
   for (jsup = 0; jsup < nsuper; jsup++) {
@@ -4714,7 +4519,7 @@ void SymmetricSparse<Scalar>::ldlTFactorize(
     &myMat.xlindx[0], &myMat.lindx[0], &myMat.xlnz[0], &myMat.lnz[0],
     &myMat.diag[0], iwsiz, &iwork[0], tmpsiz, &myMat.tmat[0], iflag);
 
-  /* Free temporary storage no longer needed after factorization */
+  // Free temporary storage no longer needed after factorization
   std::vector<int>().swap(iwork);
   std::vector<int>().swap(xadj);
   std::vector<int>().swap(adj);
