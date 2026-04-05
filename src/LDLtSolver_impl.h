@@ -18,7 +18,8 @@ extern void METIS_NodeND(
   int* invp);
 #endif
 
-namespace NgPeytonCpp { namespace details {
+namespace NgPeytonCpp {
+namespace details {
 
 /// Detect whether a symmetric sparse matrix stored in 1-based CSC format
 /// uses a full representation (both triangular halves present) or only
@@ -141,9 +142,12 @@ void fsup1(
   }
 }
 
-}}  // namespace NgPeytonCpp::details
+}  // namespace details
+}  // namespace NgPeytonCpp
 
-namespace NgPeytonCpp { namespace details { namespace f2c {
+namespace NgPeytonCpp {
+namespace details {
+namespace f2c {
 /* *********************************************************************** */
 /* *********************************************************************** */
 
@@ -4171,9 +4175,12 @@ void blkfct(
     }
   }
 } /* blkfct */
-}}}  // namespace NgPeytonCpp::details::f2c
+}  // namespace f2c
+}  // namespace details
+}  // namespace NgPeytonCpp
 
-namespace NgPeytonCpp { namespace details {
+namespace NgPeytonCpp {
+namespace details {
 /* *********************************************************************** */
 /* *********************************************************************** */
 
@@ -4280,7 +4287,8 @@ void sfinit(
   fsup1(neqns, iwork, colcnt, nsub, nsuper, snode);
   fsup2(neqns, nsuper, snode, xsuper);
 } /* sfinit */
-}}  // namespace NgPeytonCpp::details
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 //
 // Definition of templated functions for class LDLtSolver

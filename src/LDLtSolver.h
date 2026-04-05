@@ -11,6 +11,7 @@ class LDLtSolver {
 public:
   static_assert(!std::is_const<Index>::value, "Index must not be const");
   static_assert(!std::is_const<Scalar>::value, "Scalar must not be const");
+  static_assert(std::is_integral<Index>::value, "Index must be an integral type");
 
   /// \brief Remove default constructor
   LDLtSolver() = delete;
@@ -20,7 +21,8 @@ public:
   /// \param n_      Number of equations
   /// \param colptr_ Column pointer array, length n+1 (0-based)
   /// \param rowind_ Row index array, length colptr[n] (0-based)
-  /// \param order_  Ordering: -1 = MMD, 0 = user-provided (perm_)
+  /// \param order_  Ordering: -1 = MMD, 0 = user-provided (perm_),
+  ///                2 = METIS NodeND, 3 = METIS EdgeND (require -DMETIS)
   /// \param perm_   User-provided permutation array (0-based), or nullptr
   LDLtSolver(
     Index n_, const Index* colptr_, const Index* rowind_, Index order_,
