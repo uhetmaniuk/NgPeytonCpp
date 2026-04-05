@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include "SymmetricSparse.h"
+#include "LDLtSolver.h"
 
 template <typename Scalar>
 int lap2d9pt(int argc, char** argv) {
@@ -94,7 +94,7 @@ int lap2d9pt(int argc, char** argv) {
     }
   }
 
-  NgPeytonCpp::SymmetricSparse<Scalar> LDLt(
+  NgPeytonCpp::LDLtSolver<Scalar, int> LDLt(
     nnodes, colptr.data(), rowind.data(), -1);
   LDLt.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 

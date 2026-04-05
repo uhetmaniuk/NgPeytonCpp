@@ -1,12 +1,12 @@
-#ifndef CPPSELINV_SYMMETRICSPARSE_IMPL_H
-#define CPPSELINV_SYMMETRICSPARSE_IMPL_H
+#ifndef NGPEYTONCPP_LDLTSOLVER_IMPL_H
+#define NGPEYTONCPP_LDLTSOLVER_IMPL_H
 
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <vector>
 
-#include "SymmetricSparse.h"
+#include "LDLtSolver.h"
 
 #ifdef METIS
 extern void METIS_EdgeND(
@@ -18,8 +18,7 @@ extern void METIS_NodeND(
   int* invp);
 #endif
 
-namespace NgPeytonCpp {
-namespace details {
+namespace NgPeytonCpp { namespace details {
 
 /// Detect whether a symmetric sparse matrix stored in 1-based CSC format
 /// uses a full representation (both triangular halves present) or only
@@ -150,8 +149,7 @@ void fsup1(
   }
 }
 
-}  // namespace details
-}  // namespace NgPeytonCpp
+}}  // namespace NgPeytonCpp::details
 
 namespace NgPeytonCpp { namespace details { namespace f2c {
 /* *********************************************************************** */
@@ -433,7 +431,8 @@ template <typename Index>
 void chordr(
   Index neqns, const Index* xadj, const Index* adjncy, Index* perm, Index* invp,
   Index* colcnt, Index* parent, Index* fson, Index* brothr, Index* invpos) {
-  (void)xadj; (void)adjncy;
+  (void)xadj;
+  (void)adjncy;
   /*       ---------------------------------------------------------- */
   /*       COMPUTE A BINARY REPRESENTATION OF THE ELIMINATION TREE, */
   /*       SO THAT EACH "LAST CHILD" MAXIMIZES AMONG ITS SIBLINGS THE */
@@ -2868,7 +2867,8 @@ int symfc2(
   Index* invp, Index* colcnt, Index nsuper, Index* xsuper, Index* snode,
   Index nofsub, Index* xlindx, Index* lindx, Index* xlnz, Index* mrglnk,
   Index* rchlnk, Index* marker, Index& flag) {
-  (void)adjlen; (void)nofsub;
+  (void)adjlen;
+  (void)nofsub;
   /* Local variables */
   Index i, knz, head, node, tail, pcol, newi, jptr, kptr, jsup, ksup, psup,
     nzbeg, nzend, width, nexti, point, jnzbeg, knzbeg, length, jnzend, jwidth,
@@ -3225,8 +3225,9 @@ void scal(int64_t n, Scalar a, Scalar* x) {
 /* *********************************************************************** */
 
 template <typename Scalar, typename Index>
-void smxpy1(Index m, Index n, Scalar* __restrict y, Index* __restrict apnt,
-            Scalar* __restrict a) {
+void smxpy1(
+  Index m, Index n, Scalar* __restrict y, Index* __restrict apnt,
+  Scalar* __restrict a) {
   /* System generated locals */
   Index i__3, i__4, i__5;
   Scalar z__2;
@@ -4290,35 +4291,37 @@ void sfinit(
 }}  // namespace NgPeytonCpp::details
 
 //
-// Definition of templated functions for class SymmetricSparse
+// Definition of templated functions for class LDLtSolver
 //
 
 namespace NgPeytonCpp {
-template <typename Scalar>
-SymmetricSparse<Scalar>::SymmetricSparse(
-  int n_, const int* colptr_, const int* rowind_, const int order_,
-  const int* perm_) : n(n_) {
-  int nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, iwsiz = 0, iflag = 0;
+
+template <typename Scalar, typename Index>
+LDLtSolver<Scalar, Index>::LDLtSolver(
+  Index n_, const Index* colptr_, const Index* rowind_, Index order_,
+  const Index* perm_)
+  : n(n_) {
+  Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, iwsiz = 0, iflag = 0;
   bool sfiflg = true;
-  int irow = 0, jcol = 0;
+  Index irow = 0, jcol = 0;
 
   // Convert 0-based input to 1-based for internal use
-  std::vector<int> colptr1(n + 1);
+  std::vector<Index> colptr1(n + 1);
   for (i = 0; i <= n; ++i)
     colptr1[i] = colptr_[i] + 1;
-  int nnz_total = colptr_[n];
-  std::vector<int> rowind1(nnz_total);
+  Index nnz_total = colptr_[n];
+  std::vector<Index> rowind1(nnz_total);
   for (i = 0; i < nnz_total; ++i)
     rowind1[i] = rowind_[i] + 1;
-  std::vector<int> perm1;
+  std::vector<Index> perm1;
   if (perm_) {
     perm1.resize(n);
     for (i = 0; i < n; ++i)
       perm1[i] = perm_[i] + 1;
   }
-  const int* cp = &colptr1[0];
-  const int* ri = &rowind1[0];
-  const int* pm = perm_ ? &perm1[0] : nullptr;
+  const Index* cp = &colptr1[0];
+  const Index* ri = &rowind1[0];
+  const Index* pm = perm_ ? &perm1[0] : nullptr;
 
   nnz = cp[n] - 1;
 
@@ -4361,28 +4364,24 @@ SymmetricSparse<Scalar>::SymmetricSparse(
   }
 
   // Copy adjacency for reordering (ordmmd destroys the input)
-  std::vector<int> adj2(adj), xadj2(xadj);
+  std::vector<Index> adj2(adj), xadj2(xadj);
 
   // Allocate supernode partition storage
-  factor = std::unique_ptr<LDLt_factor<Scalar, int>>(new LDLt_factor<Scalar, int>());
-  factor->snodes.resize(n);
-  factor->xsuper.resize(n + 1);
-  factor->colcnt.resize(n);
-  factor->perm.resize(n);
-  factor->invp.resize(n);
+  snodes.resize(n);
+  xsuper.resize(n + 1);
+  colcnt.resize(n);
+  perm.resize(n);
+  invp.resize(n);
 
 #ifdef METIS
   if (order_ < 0 || order_ > 3) {
 #else
   if (order_ < 0 || order_ > 1) {
 #endif
-    /* ------------------------
-	Multiple Minimum Degree
- ------------------------ */
-    details::f2c::ordmmd<int>(
-      n, &xadj2[0], &adj2[0], &factor->invp[0], &factor->perm[0], iwsiz,
-      &iwork[0], factor->nnzl, factor->nsub, &factor->colcnt[0], factor->nsuper,
-      &factor->xsuper[0], &factor->snodes[0], sfiflg, iflag);
+    // Multiple Minimum Degree
+    details::f2c::ordmmd<Index>(
+      n, &xadj2[0], &adj2[0], &invp[0], &perm[0], iwsiz, &iwork[0], nnzl, nsub,
+      &colcnt[0], nsuper, &xsuper[0], &snodes[0], sfiflg, iflag);
     if (iflag != 0) {
       throw std::runtime_error("ordmmd failed (insufficient workspace)");
     }
@@ -4392,81 +4391,76 @@ SymmetricSparse<Scalar>::SymmetricSparse(
 #ifdef METIS
   else if (order_ == 2) {
     // METIS Node Nested Dissection
-    int numflag = 1, options[8];
+    Index numflag = 1;
+    Index options[8];
     options[0] = 0;
     METIS_NodeND(
-      &n, &xadj2[0], &adj2[0], &numflag, options, &factor->perm[0],
-      &factor->invp[0]);
+      &n, &xadj2[0], &adj2[0], &numflag, options, &perm[0], &invp[0]);
   } else if (order_ == 3) {
     // METIS Edge Nested Dissection
-    int numflag = 1, options[8];
+    Index numflag = 1;
+    Index options[8];
     options[0] = 0;
     METIS_EdgeND(
-      &n, &xadj2[0], &adj2[0], &numflag, options, &factor->perm[0],
-      &factor->invp[0]);
+      &n, &xadj2[0], &adj2[0], &numflag, options, &perm[0], &invp[0]);
   }
 #endif
   else if ((order_ == 0) && (pm)) {
     // Use the input permutation vector (already converted to 1-based)
     for (i = 0; i < n; i++) {
-      factor->perm[i] = pm[i];
-      factor->invp[factor->perm[i] - 1] = i + 1;
+      perm[i] = pm[i];
+      invp[perm[i] - 1] = i + 1;
     }
   }
 
   // Symbolic factorization (not needed when MMD has been called)
   if (order_ >= 0 && order_ <= 3) {
-    std::fill(iwork.begin(), iwork.end(), 0);
+    std::fill(iwork.begin(), iwork.end(), Index(0));
     details::sfinit(
-      n, nnza, &xadj[0], &adj[0], &factor->perm[0], &factor->invp[0],
-      &factor->colcnt[0], factor->nnzl, factor->nsub, factor->nsuper,
-      &factor->snodes[0], &factor->xsuper[0], iwsiz, &iwork[0], iflag);
+      n, nnza, &xadj[0], &adj[0], &perm[0], &invp[0], &colcnt[0], nnzl, nsub,
+      nsuper, &snodes[0], &xsuper[0], iwsiz, &iwork[0], iflag);
     if (iflag != 0) {
       throw std::runtime_error("sfinit failed (insufficient workspace)");
     }
   }
 
-  factor->xlindx.resize(n + 1);
-  factor->lindx.resize(factor->nsub);
-  factor->xlnz.resize(n + 1);
+  xlindx.resize(n + 1);
+  lindx.resize(nsub);
+  xlnz.resize(n + 1);
 
-  std::fill(iwork.begin(), iwork.end(), 0);
+  std::fill(iwork.begin(), iwork.end(), Index(0));
 
   details::f2c::symfct(
-    n, nnza, &xadj[0], &adj[0], &factor->perm[0], &factor->invp[0],
-    &factor->colcnt[0], factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
-    factor->nsub, &factor->xlindx[0], &factor->lindx[0], &factor->xlnz[0],
-    iwsiz, &iwork[0], iflag);
+    n, nnza, &xadj[0], &adj[0], &perm[0], &invp[0], &colcnt[0], nsuper,
+    &xsuper[0], &snodes[0], nsub, &xlindx[0], &lindx[0], &xlnz[0], iwsiz,
+    &iwork[0], iflag);
   if (iflag != 0) {
     throw std::runtime_error("symfct failed (insufficient workspace)");
   }
 
   // Prepare for numerical factorization and triangular solve
-  factor->split.resize(n);
+  split.resize(n);
 
-  int cachsz_ = 700;
+  Index cachsz_ = 700;
   details::f2c::bfinit(
-    n, factor->nsuper, &factor->xsuper[0], &factor->snodes[0],
-    &factor->xlindx[0], &factor->lindx[0], cachsz_, factor->tmpsiz,
-    &factor->split[0]);
+    n, nsuper, &xsuper[0], &snodes[0], &xlindx[0], &lindx[0], cachsz_, tmpsiz,
+    &split[0]);
 }
 
 /// \brief Numerical LDL' factorization.
 /// \param colptr_ Column pointer array, length n+1 (0-based)
 /// \param rowind_ Row index array, length colptr[n] (0-based)
 /// \param nzvals_ Nonzero values array
-template <typename Scalar>
-template <typename Index>
-void SymmetricSparse<Scalar>::ldlTFactorize(
+template <typename Scalar, typename Index>
+void LDLtSolver<Scalar, Index>::ldlTFactorize(
   const Index* colptr_, const Index* rowind_, const Scalar* nzvals_) {
-  Index i, nnz, nnzl, neqns, nsuper, tmpsiz, iflag, iwsiz;
+  Index i, nnz, iwsiz, iflag;
   Index maxsup, jsup, nnzlplus, supsize;
-  auto& myMat = *(factor.get());
 
-  neqns = n;
+  Index neqns = n;
   iwsiz = 7 * neqns + 3;
 
-  /* Convert 0-based input to 1-based for internal use */
+  // Convert 0-based input to 1-based for internal use
   Index nnz_total = colptr_[neqns];
   std::vector<Index> colptr1(neqns + 1);
   for (i = 0; i <= neqns; ++i)
@@ -4478,9 +4472,6 @@ void SymmetricSparse<Scalar>::ldlTFactorize(
   const Index* ri = &rowind1[0];
 
   nnz = cp[neqns] - 1;
-  nnzl = myMat.nnzl;
-  nsuper = myMat.nsuper;
-  tmpsiz = myMat.tmpsiz;
 
   anz.resize(2 * nnz - neqns);
 
@@ -4488,15 +4479,15 @@ void SymmetricSparse<Scalar>::ldlTFactorize(
   maxsup = 0;
   nnzlplus = nnzl;
   for (jsup = 0; jsup < nsuper; jsup++) {
-    supsize = myMat.xsuper[jsup + 1] - myMat.xsuper[jsup];
+    supsize = xsuper[jsup + 1] - xsuper[jsup];
     maxsup = std::max(maxsup, supsize);
     nnzlplus = nnzlplus + supsize * (supsize - 1) / 2;
   }
 
-  myMat.lnz.resize(nnzlplus);
-  myMat.tmat.resize(tmpsiz);
-  myMat.diag.resize(neqns);
-  myMat.newrhs.resize(neqns);
+  lnz.resize(nnzlplus);
+  tmat.resize(tmpsiz);
+  diag.resize(neqns);
+  newrhs.resize(neqns);
 
   if (fullrep) {
     std::copy(cp, cp + neqns + 1, xadj.begin());
@@ -4508,45 +4499,34 @@ void SymmetricSparse<Scalar>::ldlTFactorize(
   }
 
   details::f2c::inpnv(
-    neqns, &xadj[0], &adj[0], &anz[0], &myMat.perm[0], &myMat.invp[0],
-    myMat.nsuper, &myMat.xsuper[0], &myMat.xlindx[0], &myMat.lindx[0],
-    &myMat.xlnz[0], &myMat.lnz[0], iwsiz, &iwork[0], iflag);
+    neqns, &xadj[0], &adj[0], &anz[0], &perm[0], &invp[0], nsuper, &xsuper[0],
+    &xlindx[0], &lindx[0], &xlnz[0], &lnz[0], iwsiz, &iwork[0], iflag);
 
-  myMat.tmat.assign(tmpsiz, 0);
+  tmat.assign(tmpsiz, Scalar(0));
 
   details::f2c::blkfct(
-    neqns, nsuper, &myMat.xsuper[0], &myMat.snodes[0], &myMat.split[0],
-    &myMat.xlindx[0], &myMat.lindx[0], &myMat.xlnz[0], &myMat.lnz[0],
-    &myMat.diag[0], iwsiz, &iwork[0], tmpsiz, &myMat.tmat[0], iflag);
+    neqns, nsuper, &xsuper[0], &snodes[0], &split[0], &xlindx[0], &lindx[0],
+    &xlnz[0], &lnz[0], &diag[0], iwsiz, &iwork[0], tmpsiz, &tmat[0], iflag);
 
   // Free temporary storage no longer needed after factorization
-  std::vector<int>().swap(iwork);
-  std::vector<int>().swap(xadj);
-  std::vector<int>().swap(adj);
+  std::vector<Index>().swap(iwork);
+  std::vector<Index>().swap(xadj);
+  std::vector<Index>().swap(adj);
   std::vector<Scalar>().swap(anz);
 }
 
-template <typename Scalar>
-void SymmetricSparse<Scalar>::solve(const Scalar* rhs, Scalar* x) {
-  if (factor == nullptr) {
-    throw std::runtime_error("solve() called before factorization");
-  }
-
-  int nsuper = factor->nsuper;
-  const auto perm = factor->perm;
-  const auto invp = factor->invp;
-  auto& newrhs = factor->newrhs;
-
-  for (int i = 0; i < n; i++)
+template <typename Scalar, typename Index>
+void LDLtSolver<Scalar, Index>::solve(const Scalar* rhs, Scalar* x) {
+  for (Index i = 0; i < n; i++)
     newrhs[i] = rhs[perm[i] - 1];
 
   details::f2c::blkslv(
-    nsuper, &factor->xsuper[0], &factor->xlindx[0], &factor->lindx[0],
-    &factor->xlnz[0], &factor->lnz[0], &factor->newrhs[0]);
+    nsuper, &xsuper[0], &xlindx[0], &lindx[0], &xlnz[0], &lnz[0], &newrhs[0]);
 
-  for (int i = 0; i < n; i++)
+  for (Index i = 0; i < n; i++)
     x[i] = newrhs[invp[i] - 1];
 }
+
 }  // namespace NgPeytonCpp
 
-#endif  // CPPSELINV_SYMMETRICSPARSE_IMPL_H
+#endif  // NGPEYTONCPP_LDLTSOLVER_IMPL_H

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "SymmetricSparse.h"
+#include "LDLtSolver.h"
 #include "nd2d.h"
 
 using doublecomplex = std::complex<double>;
@@ -112,8 +112,7 @@ int main(int argc, char** argv) {
       /* lower neighbor (i+1, j) */
       if (i + 1 < nx) {
         if (printa)
-          std::cout << gnode(i + 1, j) << " " << gnode(i, j)
-                    << " -1.0 0.0\n";
+          std::cout << gnode(i + 1, j) << " " << gnode(i, j) << " -1.0 0.0\n";
 
         rowind[count] = gnode(i + 1, j);
         nzvals[count] = doublecomplex(-1.0, 0.0);
@@ -136,8 +135,7 @@ int main(int argc, char** argv) {
       /* right neighbor (i, j+1) */
       if (j + 1 < ny) {
         if (printa)
-          std::cout << gnode(i, j + 1) << " " << gnode(i, j)
-                    << " -1.0 0.0\n";
+          std::cout << gnode(i, j + 1) << " " << gnode(i, j) << " -1.0 0.0\n";
 
         rowind[count] = gnode(i, j + 1);
         nzvals[count] = doublecomplex(-1.0, 0.0);
@@ -170,7 +168,7 @@ int main(int argc, char** argv) {
     nd2d(nx, ny, grid, perm);
   }
 
-  NgPeytonCpp::SymmetricSparse<doublecomplex> uh(
+  NgPeytonCpp::LDLtSolver<doublecomplex, int> uh(
     nnodes, colptr.data(), rowind.data(), order, perm.data());
   uh.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 

@@ -9,7 +9,7 @@
 #include <vector>
 #include <unistd.h>
 
-#include "SymmetricSparse.h"
+#include "LDLtSolver.h"
 
 // =====================================================================
 // Helpers
@@ -52,7 +52,7 @@ void solve_and_check(
 
   if (order == 0) {
     auto perm = identity_perm(n);
-    NgPeytonCpp::SymmetricSparse<double> mat(n, colptr, rowind, 0, &perm[0]);
+    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, 0, &perm[0]);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     std::vector<double> x(n, 0.0);
     mat.solve(rhs, &x[0]);
@@ -60,7 +60,7 @@ void solve_and_check(
     for (int i = 0; i < n; ++i)
       check_close(x[i], x_exact[i], tol, name);
   } else {
-    NgPeytonCpp::SymmetricSparse<double> mat(n, colptr, rowind, -1);
+    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, -1);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     std::vector<double> x(n, 0.0);
     mat.solve(rhs, &x[0]);
@@ -232,7 +232,7 @@ void test_amd_ordering_throws() {
 
   bool threw = false;
   try {
-    NgPeytonCpp::SymmetricSparse<double> mat(n, colptr, rowind, 1);
+    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, 1);
   } catch (const std::runtime_error&) {
     threw = true;
   }
@@ -255,7 +255,8 @@ void test_complex_3x3_tridiagonal() {
   const int n = 3;
   const int colptr[] = {0, 2, 4, 5};
   const int rowind[] = {0, 1, 1, 2, 2};
-  const Cpx nzvals[] = {Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0)};
+  const Cpx nzvals[] = {
+    Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0)};
 
   const Cpx x_exact[] = {Cpx(1, 1), Cpx(2, 1), Cpx(3, 1)};
   const Cpx rhs[] = {Cpx(2, 3), Cpx(4, 2), Cpx(10, 3)};
@@ -263,7 +264,7 @@ void test_complex_3x3_tridiagonal() {
   // Identity ordering
   {
     auto perm = identity_perm(n);
-    NgPeytonCpp::SymmetricSparse<Cpx> mat(n, colptr, rowind, 0, &perm[0]);
+    NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, 0, &perm[0]);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     Cpx x[3] = {};
     mat.solve(rhs, x);
@@ -276,7 +277,7 @@ void test_complex_3x3_tridiagonal() {
 
   // MMD ordering
   {
-    NgPeytonCpp::SymmetricSparse<Cpx> mat(n, colptr, rowind, -1);
+    NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, -1);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     Cpx x[3] = {};
     mat.solve(rhs, x);
@@ -301,7 +302,7 @@ void test_complex_4x4_diagonal() {
   const Cpx x_exact[] = {Cpx(1, 0), Cpx(1, 0), Cpx(1, 0), Cpx(1, 0)};
 
   // MMD ordering
-  NgPeytonCpp::SymmetricSparse<Cpx> mat(n, colptr, rowind, -1);
+  NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, -1);
   mat.ldlTFactorize(colptr, rowind, nzvals);
   Cpx x[4] = {};
   mat.solve(rhs, x);
