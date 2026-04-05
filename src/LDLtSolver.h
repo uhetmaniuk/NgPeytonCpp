@@ -6,6 +6,14 @@
 
 namespace NgPeytonCpp {
 
+/// Ordering strategy for the symbolic factorization.
+enum class Ordering {
+  MMD = -1,            ///< Multiple Minimum Degree
+  UserProvided = 0,    ///< User-provided permutation (perm_ must be set)
+  MetisNodeND = 2,     ///< METIS Node Nested Dissection (requires -DMETIS)
+  MetisEdgeND = 3      ///< METIS Edge Nested Dissection (requires -DMETIS)
+};
+
 template <typename Scalar, typename Index>
 class LDLtSolver {
 public:
@@ -21,11 +29,10 @@ public:
   /// \param n_      Number of equations
   /// \param colptr_ Column pointer array, length n+1 (0-based)
   /// \param rowind_ Row index array, length colptr[n] (0-based)
-  /// \param order_  Ordering: -1 = MMD, 0 = user-provided (perm_),
-  ///                2 = METIS NodeND, 3 = METIS EdgeND (require -DMETIS)
+  /// \param order_  Ordering strategy
   /// \param perm_   User-provided permutation array (0-based), or nullptr
   LDLtSolver(
-    Index n_, const Index* colptr_, const Index* rowind_, Index order_,
+    Index n_, const Index* colptr_, const Index* rowind_, Ordering order_,
     const Index* perm_ = nullptr);
 
   /// \brief Default destructor

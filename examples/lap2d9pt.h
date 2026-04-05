@@ -95,7 +95,7 @@ int lap2d9pt(int argc, char** argv) {
   }
 
   NgPeytonCpp::LDLtSolver<Scalar, int> LDLt(
-    nnodes, colptr.data(), rowind.data(), -1);
+    nnodes, colptr.data(), rowind.data(), NgPeytonCpp::Ordering::MMD);
   LDLt.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 
   std::vector<Scalar> x(nnodes), Ax(nnodes, Scalar(0)), y(nnodes, Scalar(0));

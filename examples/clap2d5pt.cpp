@@ -11,7 +11,7 @@ using doublecomplex = std::complex<double>;
 int main(int argc, char** argv) {
   int i, j, nnodes, nedges, ia, nnz;
   int nx = -1, ny = -1, count, node;
-  int order = 0;
+  auto order = NgPeytonCpp::Ordering::UserProvided;
   doublecomplex dval;
   int pbc = 1;
   int printa = 0;
@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     } else if (!strncmp(argv[ia], "-ny", 3)) {
       ny = atoi(&argv[ia][4]);
     } else if (!strncmp(argv[ia], "-order", 6)) {
-      order = atoi(&argv[ia][7]);
+      order = static_cast<NgPeytonCpp::Ordering>(atoi(&argv[ia][7]));
     } else if (!strncmp(argv[ia], "-printa", 7)) {
       printa = atoi(&argv[ia][8]);
       if (printa != 0)
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if (order == 0) {
+  if (order == NgPeytonCpp::Ordering::UserProvided) {
     perm.resize(nnodes);
     nd2d(nx, ny, grid, perm);
   }

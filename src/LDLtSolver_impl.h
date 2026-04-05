@@ -4298,7 +4298,7 @@ namespace NgPeytonCpp {
 
 template <typename Scalar, typename Index>
 LDLtSolver<Scalar, Index>::LDLtSolver(
-  Index n_, const Index* colptr_, const Index* rowind_, Index order_,
+  Index n_, const Index* colptr_, const Index* rowind_, Ordering order_,
   const Index* perm_)
   : n(n_) {
   Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, iwsiz = 0, iflag = 0;
@@ -4344,7 +4344,7 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
       xadj[i + 1] = xadj[i] + (cp[i + 1] - cp[i] - 1);
     }
     if (xadj[n] - 1 != nnza) {
-      std::cerr << " Something is wrong with the matrix!\n";
+      throw std::runtime_error("Inconsistent matrix structure (nnz mismatch)");
     }
 
     i = 0;
@@ -4373,11 +4373,7 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
   perm.resize(n);
   invp.resize(n);
 
-#ifdef METIS
-  if (order_ < 0 || order_ > 3) {
-#else
-  if (order_ < 0 || order_ > 1) {
-#endif
+  if (order_ == Ordering::MMD) {
     // Multiple Minimum Degree
     details::f2c::ordmmd<Index>(
       n, &xadj2[0], &adj2[0], &invp[0], &perm[0], iwsiz, &iwork[0], nnzl, nsub,
@@ -4385,18 +4381,16 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
     if (iflag != 0) {
       throw std::runtime_error("ordmmd failed (insufficient workspace)");
     }
-  } else if (order_ == 1) {
-    throw std::runtime_error("AMD ordering (order=1) is not implemented");
   }
 #ifdef METIS
-  else if (order_ == 2) {
+  else if (order_ == Ordering::MetisNodeND) {
     // METIS Node Nested Dissection
     Index numflag = 1;
     Index options[8];
     options[0] = 0;
     METIS_NodeND(
       &n, &xadj2[0], &adj2[0], &numflag, options, &perm[0], &invp[0]);
-  } else if (order_ == 3) {
+  } else if (order_ == Ordering::MetisEdgeND) {
     // METIS Edge Nested Dissection
     Index numflag = 1;
     Index options[8];
@@ -4405,16 +4399,21 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
       &n, &xadj2[0], &adj2[0], &numflag, options, &perm[0], &invp[0]);
   }
 #endif
-  else if ((order_ == 0) && (pm)) {
+  else if (order_ == Ordering::UserProvided) {
+    if (!pm) {
+      throw std::runtime_error("UserProvided ordering requires a permutation");
+    }
     // Use the input permutation vector (already converted to 1-based)
     for (i = 0; i < n; i++) {
       perm[i] = pm[i];
       invp[perm[i] - 1] = i + 1;
     }
+  } else {
+    throw std::runtime_error("Unknown ordering strategy");
   }
 
   // Symbolic factorization (not needed when MMD has been called)
-  if (order_ >= 0 && order_ <= 3) {
+  if (order_ != Ordering::MMD) {
     std::fill(iwork.begin(), iwork.end(), Index(0));
     details::sfinit(
       n, nnza, &xadj[0], &adj[0], &perm[0], &invp[0], &colcnt[0], nnzl, nsub,

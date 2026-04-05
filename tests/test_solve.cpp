@@ -41,18 +41,21 @@ std::vector<int> identity_perm(int n) {
   return p;
 }
 
+using NgPeytonCpp::Ordering;
+
 /// Construct, factorize, solve with a given ordering, check solution.
-/// order = 0 (identity perm) or -1 (MMD).
 /// All indices are 0-based.
 void solve_and_check(
-  const char* name, int order, int n, const int* colptr, const int* rowind,
-  const double* nzvals, const double* rhs, const double* x_exact, double tol) {
+  const char* name, Ordering order, int n, const int* colptr,
+  const int* rowind, const double* nzvals, const double* rhs,
+  const double* x_exact, double tol) {
   current_test = name;
   alarm(5);
 
-  if (order == 0) {
+  if (order == Ordering::UserProvided) {
     auto perm = identity_perm(n);
-    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, 0, &perm[0]);
+    NgPeytonCpp::LDLtSolver<double, int> mat(
+      n, colptr, rowind, order, &perm[0]);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     std::vector<double> x(n, 0.0);
     mat.solve(rhs, &x[0]);
@@ -60,7 +63,7 @@ void solve_and_check(
     for (int i = 0; i < n; ++i)
       check_close(x[i], x_exact[i], tol, name);
   } else {
-    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, -1);
+    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, order);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     std::vector<double> x(n, 0.0);
     mat.solve(rhs, &x[0]);
@@ -79,11 +82,13 @@ void run_both(
   std::string label_mmd = std::string(name) + " (MMD)";
 
   solve_and_check(
-    label_id.c_str(), 0, n, colptr, rowind, nzvals, rhs, x_exact, tol);
+    label_id.c_str(), Ordering::UserProvided, n, colptr, rowind, nzvals, rhs,
+    x_exact, tol);
   std::cout << "  PASS  " << label_id << "\n";
 
   solve_and_check(
-    label_mmd.c_str(), -1, n, colptr, rowind, nzvals, rhs, x_exact, tol);
+    label_mmd.c_str(), Ordering::MMD, n, colptr, rowind, nzvals, rhs, x_exact,
+    tol);
   std::cout << "  PASS  " << label_mmd << "\n";
 }
 
@@ -224,20 +229,21 @@ void test_laplace2d_8x8() {
 // Error-path tests
 // =====================================================================
 
-// order=1 (AMD, not implemented) should throw
-void test_amd_ordering_throws() {
+// UserProvided without a permutation should throw
+void test_user_provided_no_perm_throws() {
   const int n = 3;
   const int colptr[] = {0, 2, 4, 5};
   const int rowind[] = {0, 1, 1, 2, 2};
 
   bool threw = false;
   try {
-    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, 1);
+    NgPeytonCpp::LDLtSolver<double, int> mat(
+      n, colptr, rowind, Ordering::UserProvided);
   } catch (const std::runtime_error&) {
     threw = true;
   }
-  assert(threw && "order=1 (AMD) must throw");
-  std::cout << "  PASS  AMD ordering (order=1) throws\n";
+  assert(threw && "UserProvided without perm must throw");
+  std::cout << "  PASS  UserProvided without perm throws\n";
 }
 
 // =====================================================================
@@ -264,7 +270,8 @@ void test_complex_3x3_tridiagonal() {
   // Identity ordering
   {
     auto perm = identity_perm(n);
-    NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, 0, &perm[0]);
+    NgPeytonCpp::LDLtSolver<Cpx, int> mat(
+      n, colptr, rowind, Ordering::UserProvided, &perm[0]);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     Cpx x[3] = {};
     mat.solve(rhs, x);
@@ -277,7 +284,7 @@ void test_complex_3x3_tridiagonal() {
 
   // MMD ordering
   {
-    NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, -1);
+    NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, Ordering::MMD);
     mat.ldlTFactorize(colptr, rowind, nzvals);
     Cpx x[3] = {};
     mat.solve(rhs, x);
@@ -302,7 +309,7 @@ void test_complex_4x4_diagonal() {
   const Cpx x_exact[] = {Cpx(1, 0), Cpx(1, 0), Cpx(1, 0), Cpx(1, 0)};
 
   // MMD ordering
-  NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, -1);
+  NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, Ordering::MMD);
   mat.ldlTFactorize(colptr, rowind, nzvals);
   Cpx x[4] = {};
   mat.solve(rhs, x);
@@ -326,7 +333,7 @@ int main() {
   test_laplace2d_8x8();
 
   std::cout << "Running error-path tests...\n";
-  test_amd_ordering_throws();
+  test_user_provided_no_perm_throws();
 
   std::cout << "Running complex scalar tests...\n";
   test_complex_3x3_tridiagonal();
