@@ -1,7 +1,6 @@
 #ifndef NGPEYTONCPP_DETAILS_CONVERSION_H
 #define NGPEYTONCPP_DETAILS_CONVERSION_H
 
-#include "NgPeytonCpp/LDLtSolver.h"
 
 namespace NgPeytonCpp { namespace details { namespace f2c {
 

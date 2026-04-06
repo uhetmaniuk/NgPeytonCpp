@@ -1,7 +1,6 @@
 #ifndef NGPEYTONCPP_DETAILS_BLAS_H
 #define NGPEYTONCPP_DETAILS_BLAS_H
 
-#include "NgPeytonCpp/LDLtSolver.h"
 
 namespace NgPeytonCpp { namespace details { namespace f2c {
 
@@ -34,7 +33,7 @@ namespace NgPeytonCpp { namespace details { namespace f2c {
 /* *********************************************************************** */
 
 template <typename Scalar>
-void scal(int64_t n, Scalar a, Scalar* x) {
+void scal(int64_t n, Scalar a, Scalar* __restrict x) {
   for (int64_t i = 0; i < n; ++i) {
     x[i] = a * x[i];
   }

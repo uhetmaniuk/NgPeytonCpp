@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <vector>
 
-#include "NgPeytonCpp/LDLtSolver.h"
 
 namespace NgPeytonCpp { namespace details {
 
@@ -126,6 +125,33 @@ void fsup1(
     ++nsuper;
     snode[kcol] = nsuper;
     nofsub += colcnt[kcol];
+  }
+}
+
+// -----------------------------------------------------------------------
+// IGATHR — Gather relative indices from an index map.
+// -----------------------------------------------------------------------
+template <typename Index = int64_t>
+void igathr(
+  Index klen, const Index* lindx, const Index* indmap, Index* relind) {
+  --indmap;
+  for (Index i = 0; i < klen; ++i) {
+    relind[i] = indmap[lindx[i]];
+  }
+}
+
+// -----------------------------------------------------------------------
+// LDINDX — Load index vector: maps global row indices to relative
+// positions in the supernode column.
+// -----------------------------------------------------------------------
+template <typename Index = int64_t>
+void ldindx(Index jlen, Index* lindx, Index* indmap) {
+  --indmap;
+  Index curlen = jlen;
+  for (Index j = 0; j < jlen; ++j) {
+    Index jsub = lindx[j];
+    --curlen;
+    indmap[jsub] = curlen;
   }
 }
 

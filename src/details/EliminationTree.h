@@ -1,7 +1,6 @@
 #ifndef NGPEYTONCPP_DETAILS_ELIMINATIONTREE_H
 #define NGPEYTONCPP_DETAILS_ELIMINATIONTREE_H
 
-#include "NgPeytonCpp/LDLtSolver.h"
 #include "details/Utilities.h"
 
 namespace NgPeytonCpp { namespace details { namespace f2c {

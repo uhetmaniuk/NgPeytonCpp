@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <iostream>
 
-#include "NgPeytonCpp/LDLtSolver.h"
 #include "details/Utilities.h"
 #include "details/BLAS.h"
 
@@ -141,7 +140,8 @@ void inpnv(
 /* *********************************************************************** */
 
 template <typename Scalar, typename Index>
-void pchol(Index m, Index n, Index* xpnt, Scalar* x, Index& iflag) {
+void pchol(Index m, Index n, Index* __restrict xpnt, Scalar* __restrict x,
+           Index& iflag) {
   /* Local variables */
   Index mm;
   Scalar diag;

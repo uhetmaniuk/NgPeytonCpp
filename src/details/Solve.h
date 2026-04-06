@@ -1,8 +1,6 @@
 #ifndef NGPEYTONCPP_DETAILS_SOLVE_H
 #define NGPEYTONCPP_DETAILS_SOLVE_H
 
-#include "NgPeytonCpp/LDLtSolver.h"
-#include "details/BLAS.h"
 
 namespace NgPeytonCpp { namespace details { namespace f2c {
 

@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <iostream>
 
-#include "NgPeytonCpp/LDLtSolver.h"
 
 namespace NgPeytonCpp { namespace details { namespace f2c {
 

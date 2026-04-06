@@ -5,7 +5,6 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "NgPeytonCpp/LDLtSolver.h"
 #include "details/Utilities.h"
 #include "details/EliminationTree.h"
 
@@ -483,91 +482,6 @@ L300:
 /*   Authors:        Esmond G. Ng and Barry W. Peyton */
 
 /*   Mathematical Sciences Section, Oak Ridge National Laboratory */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* ******         IGATHR .... INTEGER GATHER OPERATION      ************** */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*     PURPOSE - THIS ROUTINE PERFORMS A STANDARD INTEGER GATHER */
-/*               OPERATION. */
-
-/*     INPUT PARAMETERS - */
-/*        KLEN   - LENGTH OF THE LIST OF GLOBAL INDICES. */
-/*        LINDX  - LIST OF GLOBAL INDICES. */
-/*        INDMAP - INDEXED BY GLOBAL INDICES, IT CONTAINS THE */
-/*                 REQUIRED RELATIVE INDICES. */
-
-/*     OUTPUT PARAMETERS - */
-/*        RELIND - LIST RELATIVE INDICES. */
-
-/* *********************************************************************** */
-
-template <typename Index = int64_t>
-void igathr(
-  Index klen, const Index* lindx, const Index* indmap, Index* relind) {
-  /* Parameter adjustments */
-  --indmap;
-  /* Function Body */
-  for (Index i = 0; i < klen; ++i) {
-    relind[i] = indmap[lindx[i]];
-  }
-} /* igathr */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*   Version:        0.3 */
-/*   Last modified:  December 27, 1994 */
-/*   Authors:        Esmond G. Ng and Barry W. Peyton */
-
-/*   Mathematical Sciences Section, Oak Ridge National Laboratory */
-
-/* *********************************************************************** */
-/* *********************************************************************** */
-/* ******         LDINDX .... LOAD INDEX VECTOR             ************** */
-/* *********************************************************************** */
-/* *********************************************************************** */
-
-/*     PURPOSE - THIS ROUTINE COMPUTES THE SECOND INDEX VECTOR */
-/*               USED TO IMPLEMENT THE DOUBLY-INDIRECT SAXPY-LIKE */
-/*               LOOPS THAT ALLOW US TO ACCUMULATE UPDATE */
-/*               COLUMNS DIRECTLY INTO FACTOR STORAGE. */
-
-/*     INPUT PARAMETERS - */
-/*        JLEN   - LENGTH OF THE FIRST COLUMN OF THE SUPERNODE, */
-/*                 INCLUDING THE DIAGONAL ENTRY. */
-/*        LINDX  - THE OFF-DIAGONAL ROW INDICES OF THE SUPERNODE, */
-/*                 I.E., THE ROW INDICES OF THE NONZERO ENTRIES */
-/*                 LYING BELOW THE DIAGONAL ENTRY OF THE FIRST */
-/*                 COLUMN OF THE SUPERNODE. */
-
-/*     OUTPUT PARAMETERS - */
-/*        INDMAP - THIS INDEX VECTOR MAPS EVERY GLOBAL ROW INDEX */
-/*                 OF NONZERO ENTRIES IN THE FIRST COLUMN OF THE */
-/*                 SUPERNODE TO ITS POSITION IN THE INDEX LIST */
-/*                 RELATIVE TO THE LAST INDEX IN THE LIST.  MORE */
-/*                 PRECISELY, IT GIVES THE DISTANCE OF EACH INDEX */
-/*                 FROM THE LAST INDEX IN THE LIST. */
-
-/* *********************************************************************** */
-
-template <typename Index = int64_t>
-void ldindx(Index jlen, Index* lindx, Index* indmap) {
-  /* Local variables */
-  Index j, jsub, curlen;
-
-  /* Parameter adjustments */
-  --indmap;
-
-  curlen = jlen;
-  for (j = 0; j < jlen; ++j) {
-    jsub = lindx[j];
-    --curlen;
-    indmap[jsub] = curlen;
-  }
-} /* ldindx */
 
 /* *********************************************************************** */
 /* *********************************************************************** */
