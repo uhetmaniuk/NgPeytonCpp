@@ -1,6 +1,7 @@
 #ifndef NGPEYTONCPP_LDLTSOLVER_H
 #define NGPEYTONCPP_LDLTSOLVER_H
 
+#include <complex>
 #include <type_traits>
 #include <vector>
 
@@ -21,6 +22,11 @@ public:
   static_assert(!std::is_const<Scalar>::value, "Scalar must not be const");
   static_assert(
     std::is_integral<Index>::value, "Index must be an integral type");
+  static_assert(
+    std::is_floating_point<Scalar>::value ||
+      std::is_same<Scalar, std::complex<float>>::value ||
+      std::is_same<Scalar, std::complex<double>>::value,
+    "Scalar must be float, double, complex<float>, or complex<double>");
 
   /// \brief Remove default constructor
   LDLtSolver() = delete;
