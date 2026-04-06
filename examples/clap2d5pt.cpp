@@ -134,8 +134,7 @@ int main(int argc, char** argv) {
   }
 
   NgPeytonCpp::LDLtSolver<doublecomplex, int> uh(
-    nnodes, colptr.data(), rowind.data(), order, perm.data());
-  uh.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
+    nnodes, colptr.data(), rowind.data(), nzvals.data(), order, perm.data());
 
   // Solve: set x = {0, 1, 2, ...}, compute Ax, solve, check
   std::vector<doublecomplex> x(nnodes), Ax(nnodes, 0.0), y(nnodes, 0.0);

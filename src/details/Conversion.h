@@ -1,7 +1,6 @@
 #ifndef NGPEYTONCPP_DETAILS_CONVERSION_H
 #define NGPEYTONCPP_DETAILS_CONVERSION_H
 
-
 namespace NgPeytonCpp { namespace details { namespace f2c {
 
 /*********************************************************************/

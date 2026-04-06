@@ -2,6 +2,16 @@
 
 #include "LDLtSolver_impl.h"
 
+#ifdef METIS
+extern void METIS_EdgeND(
+  int* n, int* xadj, int* adj, int* numflag, int* options, int* perm,
+  int* invp);
+
+extern void METIS_NodeND(
+  int* n, int* xadj, int* adj, int* numflag, int* options, int* perm,
+  int* invp);
+#endif
+
 namespace NgPeytonCpp {
 
 namespace {
@@ -17,13 +27,18 @@ std::vector<Index> toOneBased(const Index* src, Index count) {
 
 }  // namespace
 
+// -----------------------------------------------------------------------
+// Constructor
+// -----------------------------------------------------------------------
+
 template <typename Scalar, typename Index>
 LDLtSolver<Scalar, Index>::LDLtSolver(
-  Index n_, const Index* colptr_, const Index* rowind_, Ordering order_,
-  const Index* perm_)
+  Index n_, const Index* colptr_, const Index* rowind_, const Scalar* nzvals_,
+  Ordering order_, const Index* perm_)
   : n(n_) {
-  Index nnz = 0, nnza = 0, ibegin = 0, iend = 0, i = 0, iwsiz = 0, iflag = 0;
-  Index irow = 0, jcol = 0;
+  if (!nzvals_) {
+    throw std::runtime_error("nzvals_ must not be null");
+  }
 
   // Convert 0-based input to 1-based for internal use
   auto colptr1 = toOneBased(colptr_, n + 1);
@@ -35,16 +50,25 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
   const Index* ri = rowind1.data();
   const Index* pm = perm_ ? perm1.data() : nullptr;
 
-  nnz = cp[n] - 1;
+  Index nnz = cp[n] - 1;
+  Index nnza = 0;
 
-  // Detect full vs lower-triangular representation
+  buildAdjacency(nnz, cp, ri, nnza);
+  symbolicAnalysis(nnza, order_, pm);
+  numericalFactorization(nnz, cp, ri, nzvals_);
+}
+
+// -----------------------------------------------------------------------
+// Build full adjacency structure (no diagonal) from 1-based CSC input
+// -----------------------------------------------------------------------
+
+template <typename Scalar, typename Index>
+void LDLtSolver<Scalar, Index>::buildAdjacency(
+  Index nnz, const Index* cp, const Index* ri, Index& nnza) {
   fullrep = details::isFullRepresentation(n, cp, ri);
-
-  // nnza = number of off-diagonal nonzeros in full representation
   nnza = (fullrep) ? nnz - n : 2 * (nnz - n);
-  iwsiz = 7 * n + 3;
+  Index iwsiz = 7 * n + 3;
 
-  // Allocate adjacency storage (full representation, no diagonal)
   xadj.resize(n + 1);
   adj.resize(nnza + n);
   iwork.resize(iwsiz);
@@ -52,21 +76,21 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
   if (fullrep) {
     // Copy structure, removing diagonal entries
     xadj[0] = 1;
-    for (i = 0; i < n; i++) {
+    for (Index i = 0; i < n; i++) {
       xadj[i + 1] = xadj[i] + (cp[i + 1] - cp[i] - 1);
     }
     if (xadj[n] - 1 != nnza) {
       throw std::runtime_error("Inconsistent matrix structure (nnz mismatch)");
     }
 
-    i = 0;
-    for (jcol = 1; jcol <= n; jcol++) {
-      ibegin = cp[jcol - 1];
-      iend = cp[jcol] - 1;
-      for (irow = ibegin; irow <= iend; irow++) {
+    Index k = 0;
+    for (Index jcol = 1; jcol <= n; jcol++) {
+      Index ibegin = cp[jcol - 1];
+      Index iend = cp[jcol] - 1;
+      for (Index irow = ibegin; irow <= iend; irow++) {
         if (ri[irow - 1] != jcol) {
-          adj[i] = ri[irow - 1];
-          i++;
+          adj[k] = ri[irow - 1];
+          k++;
         }
       }
     }
@@ -74,6 +98,17 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
     // Convert lower-triangular to full representation
     details::f2c::ilo2ho(n, nnza, cp, ri, &xadj[0], &adj[0], &iwork[0]);
   }
+}
+
+// -----------------------------------------------------------------------
+// Fill-reducing ordering + symbolic factorization
+// -----------------------------------------------------------------------
+
+template <typename Scalar, typename Index>
+void LDLtSolver<Scalar, Index>::symbolicAnalysis(
+  Index nnza, Ordering order_, const Index* pm) {
+  Index iwsiz = 7 * n + 3;
+  Index iflag = 0;
 
   // Copy adjacency for reordering (ordmmd destroys the input)
   std::vector<Index> adj2(adj), xadj2(xadj);
@@ -86,7 +121,6 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
   invp.resize(n);
 
   if (order_ == Ordering::MMD) {
-    // Multiple Minimum Degree
     bool sfiflg = true;  // output from ordmmd, not used
     details::f2c::ordmmd<Index>(
       n, &xadj2[0], &adj2[0], &invp[0], &perm[0], iwsiz, &iwork[0], nnzl, nsub,
@@ -97,14 +131,12 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
   }
 #ifdef METIS
   else if (order_ == Ordering::MetisNodeND) {
-    // METIS Node Nested Dissection
     Index numflag = 1;
     Index options[8];
     options[0] = 0;
     METIS_NodeND(
       &n, &xadj2[0], &adj2[0], &numflag, options, &perm[0], &invp[0]);
   } else if (order_ == Ordering::MetisEdgeND) {
-    // METIS Edge Nested Dissection
     Index numflag = 1;
     Index options[8];
     options[0] = 0;
@@ -116,8 +148,7 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
     if (!pm) {
       throw std::runtime_error("UserProvided ordering requires a permutation");
     }
-    // Use the input permutation vector (already converted to 1-based)
-    for (i = 0; i < n; i++) {
+    for (Index i = 0; i < n; i++) {
       perm[i] = pm[i];
       invp[perm[i] - 1] = i + 1;
     }
@@ -150,7 +181,6 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
     throw std::runtime_error("symfct failed (insufficient workspace)");
   }
 
-  // Prepare for numerical factorization and triangular solve
   split.resize(n);
 
   Index cachsz_ = 700;
@@ -159,60 +189,49 @@ LDLtSolver<Scalar, Index>::LDLtSolver(
     &split[0]);
 }
 
-/// \brief Numerical LDL' factorization.
-/// \param colptr_ Column pointer array, length n+1 (0-based)
-/// \param rowind_ Row index array, length colptr[n] (0-based)
-/// \param nzvals_ Nonzero values array
+// -----------------------------------------------------------------------
+// Numerical LDL' factorization
+// -----------------------------------------------------------------------
+
 template <typename Scalar, typename Index>
-void LDLtSolver<Scalar, Index>::ldlTFactorize(
-  const Index* colptr_, const Index* rowind_, const Scalar* nzvals_) {
-  Index nnz, iwsiz, iflag;
-  Index maxsup, jsup, nnzlplus, supsize;
+void LDLtSolver<Scalar, Index>::numericalFactorization(
+  Index nnz, const Index* cp, const Index* ri, const Scalar* nzvals_) {
+  Index iwsiz = 7 * n + 3;
+  Index iflag = 0;
 
-  Index neqns = n;
-  iwsiz = 7 * neqns + 3;
+  anz.resize(2 * nnz - n);
 
-  // Convert 0-based input to 1-based for internal use
-  auto colptr1 = toOneBased(colptr_, neqns + 1);
-  auto rowind1 = toOneBased(rowind_, colptr_[neqns]);
-  const Index* cp = colptr1.data();
-  const Index* ri = rowind1.data();
-
-  nnz = cp[neqns] - 1;
-
-  anz.resize(2 * nnz - neqns);
-
-  // Allocate extra space for diagonal extraction (not used in LDL')
-  maxsup = 0;
-  nnzlplus = nnzl;
-  for (jsup = 0; jsup < nsuper; jsup++) {
-    supsize = xsuper[jsup + 1] - xsuper[jsup];
+  // Allocate factor storage (extra space for diagonal extraction)
+  Index maxsup = 0;
+  Index nnzlplus = nnzl;
+  for (Index jsup = 0; jsup < nsuper; jsup++) {
+    Index supsize = xsuper[jsup + 1] - xsuper[jsup];
     maxsup = std::max(maxsup, supsize);
     nnzlplus = nnzlplus + supsize * (supsize - 1) / 2;
   }
 
   lnz.resize(nnzlplus);
   tmat.resize(tmpsiz);
-  diag.resize(neqns);
-  newrhs.resize(neqns);
+  diag.resize(n);
+  newrhs.resize(n);
 
   if (fullrep) {
-    std::copy(cp, cp + neqns + 1, xadj.begin());
+    std::copy(cp, cp + n + 1, xadj.begin());
     std::copy(ri, ri + nnz, adj.begin());
     std::copy(nzvals_, nzvals_ + nnz, anz.begin());
   } else {
     details::f2c::flo2ho(
-      neqns, cp, ri, nzvals_, &xadj[0], &adj[0], &anz[0], &iwork[0]);
+      n, cp, ri, nzvals_, &xadj[0], &adj[0], &anz[0], &iwork[0]);
   }
 
   details::f2c::inpnv(
-    neqns, &xadj[0], &adj[0], &anz[0], &perm[0], &invp[0], nsuper, &xsuper[0],
+    n, &xadj[0], &adj[0], &anz[0], &perm[0], &invp[0], nsuper, &xsuper[0],
     &xlindx[0], &lindx[0], &xlnz[0], &lnz[0], iwsiz, &iwork[0], iflag);
 
   tmat.assign(tmpsiz, Scalar(0));
 
   details::f2c::blkfct(
-    neqns, nsuper, &xsuper[0], &snodes[0], &split[0], &xlindx[0], &lindx[0],
+    n, nsuper, &xsuper[0], &snodes[0], &split[0], &xlindx[0], &lindx[0],
     &xlnz[0], &lnz[0], &diag[0], iwsiz, &iwork[0], tmpsiz, &tmat[0], iflag);
 
   // Free temporary storage no longer needed after factorization
@@ -225,6 +244,10 @@ void LDLtSolver<Scalar, Index>::ldlTFactorize(
   std::vector<Index>().swap(colcnt);
   std::vector<Index>().swap(snodes);
 }
+
+// -----------------------------------------------------------------------
+// Solve
+// -----------------------------------------------------------------------
 
 template <typename Scalar, typename Index>
 void LDLtSolver<Scalar, Index>::solve(const Scalar* rhs, Scalar* x) {

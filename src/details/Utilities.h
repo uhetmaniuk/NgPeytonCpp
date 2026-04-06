@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <vector>
 
-
 namespace NgPeytonCpp { namespace details {
 
 /// Detect whether a symmetric sparse matrix stored in 1-based CSC format

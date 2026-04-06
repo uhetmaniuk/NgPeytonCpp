@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <iostream>
 
-
 namespace NgPeytonCpp { namespace details { namespace f2c {
 
 /* *********************************************************************** */

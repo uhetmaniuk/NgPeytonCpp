@@ -12,14 +12,4 @@
 #include "details/NumericFactorization.h"
 #include "details/Solve.h"
 
-#ifdef METIS
-extern void METIS_EdgeND(
-  int* n, int* xadj, int* adj, int* numflag, int* options, int* perm,
-  int* invp);
-
-extern void METIS_NodeND(
-  int* n, int* xadj, int* adj, int* numflag, int* options, int* perm,
-  int* invp);
-#endif
-
 #endif  // NGPEYTONCPP_LDLTSOLVER_IMPL_H

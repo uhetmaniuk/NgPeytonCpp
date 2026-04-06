@@ -140,8 +140,9 @@ void inpnv(
 /* *********************************************************************** */
 
 template <typename Scalar, typename Index>
-void pchol(Index m, Index n, Index* __restrict xpnt, Scalar* __restrict x,
-           Index& iflag) {
+void pchol(
+  Index m, Index n, Index* __restrict xpnt, Scalar* __restrict x,
+  Index& iflag) {
   /* Local variables */
   Index mm;
   Scalar diag;

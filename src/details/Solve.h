@@ -1,7 +1,6 @@
 #ifndef NGPEYTONCPP_DETAILS_SOLVE_H
 #define NGPEYTONCPP_DETAILS_SOLVE_H
 
-
 namespace NgPeytonCpp { namespace details { namespace f2c {
 
 /* *********************************************************************** */

@@ -54,16 +54,14 @@ void solve_and_check(
   if (order == Ordering::UserProvided) {
     auto perm = identity_perm(n);
     NgPeytonCpp::LDLtSolver<double, int> mat(
-      n, colptr, rowind, order, &perm[0]);
-    mat.ldlTFactorize(colptr, rowind, nzvals);
+      n, colptr, rowind, nzvals, order, &perm[0]);
     std::vector<double> x(n, 0.0);
     mat.solve(rhs, &x[0]);
     alarm(0);
     for (int i = 0; i < n; ++i)
       check_close(x[i], x_exact[i], tol, name);
   } else {
-    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, order);
-    mat.ldlTFactorize(colptr, rowind, nzvals);
+    NgPeytonCpp::LDLtSolver<double, int> mat(n, colptr, rowind, nzvals, order);
     std::vector<double> x(n, 0.0);
     mat.solve(rhs, &x[0]);
     alarm(0);
@@ -234,10 +232,12 @@ void test_user_provided_no_perm_throws() {
   const int colptr[] = {0, 2, 4, 5};
   const int rowind[] = {0, 1, 1, 2, 2};
 
+  const double nzvals[] = {4.0, -1.0, 4.0, -1.0, 4.0};
+
   bool threw = false;
   try {
     NgPeytonCpp::LDLtSolver<double, int> mat(
-      n, colptr, rowind, Ordering::UserProvided);
+      n, colptr, rowind, nzvals, Ordering::UserProvided);
   } catch (const std::runtime_error&) {
     threw = true;
   }
@@ -270,8 +270,7 @@ void test_complex_3x3_tridiagonal() {
   {
     auto perm = identity_perm(n);
     NgPeytonCpp::LDLtSolver<Cpx, int> mat(
-      n, colptr, rowind, Ordering::UserProvided, &perm[0]);
-    mat.ldlTFactorize(colptr, rowind, nzvals);
+      n, colptr, rowind, nzvals, Ordering::UserProvided, &perm[0]);
     Cpx x[3] = {};
     mat.solve(rhs, x);
     const double tol = 1e-12;
@@ -283,8 +282,8 @@ void test_complex_3x3_tridiagonal() {
 
   // MMD ordering
   {
-    NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, Ordering::MMD);
-    mat.ldlTFactorize(colptr, rowind, nzvals);
+    NgPeytonCpp::LDLtSolver<Cpx, int> mat(
+      n, colptr, rowind, nzvals, Ordering::MMD);
     Cpx x[3] = {};
     mat.solve(rhs, x);
     const double tol = 1e-12;
@@ -308,8 +307,8 @@ void test_complex_4x4_diagonal() {
   const Cpx x_exact[] = {Cpx(1, 0), Cpx(1, 0), Cpx(1, 0), Cpx(1, 0)};
 
   // MMD ordering
-  NgPeytonCpp::LDLtSolver<Cpx, int> mat(n, colptr, rowind, Ordering::MMD);
-  mat.ldlTFactorize(colptr, rowind, nzvals);
+  NgPeytonCpp::LDLtSolver<Cpx, int> mat(
+    n, colptr, rowind, nzvals, Ordering::MMD);
   Cpx x[4] = {};
   mat.solve(rhs, x);
   const double tol = 1e-12;
@@ -317,6 +316,40 @@ void test_complex_4x4_diagonal() {
     assert(std::abs(x[i] - x_exact[i]) < tol);
   }
   std::cout << "  PASS  complex 4x4 diagonal (MMD)\n";
+}
+
+// =====================================================================
+// Multi-solve test
+// =====================================================================
+
+// Verify that solve() can be called multiple times on the same factorization
+void test_multi_solve() {
+  const int n = 3;
+  const int colptr[] = {0, 2, 4, 5};
+  const int rowind[] = {0, 1, 1, 2, 2};
+  const double nzvals[] = {4.0, -1.0, 4.0, -1.0, 4.0};
+
+  NgPeytonCpp::LDLtSolver<double, int> mat(
+    n, colptr, rowind, nzvals, Ordering::MMD);
+
+  // First solve: rhs1 = {3,2,3}, x1 = {1,1,1}
+  const double rhs1[] = {3.0, 2.0, 3.0};
+  double x1[3] = {};
+  mat.solve(rhs1, x1);
+
+  // Second solve: rhs2 = {2,3,14}, x2 = {1,2,4}
+  const double rhs2[] = {2.0, 3.0, 14.0};
+  double x2[3] = {};
+  mat.solve(rhs2, x2);
+
+  const double tol = 1e-12;
+  check_close(x1[0], 1.0, tol, "multi x1[0]");
+  check_close(x1[1], 1.0, tol, "multi x1[1]");
+  check_close(x1[2], 1.0, tol, "multi x1[2]");
+  check_close(x2[0], 1.0, tol, "multi x2[0]");
+  check_close(x2[1], 2.0, tol, "multi x2[1]");
+  check_close(x2[2], 4.0, tol, "multi x2[2]");
+  std::cout << "  PASS  multi-solve reuse\n";
 }
 
 // =====================================================================
@@ -333,6 +366,9 @@ int main() {
 
   std::cout << "Running error-path tests...\n";
   test_user_provided_no_perm_throws();
+
+  std::cout << "Running multi-solve test...\n";
+  test_multi_solve();
 
   std::cout << "Running complex scalar tests...\n";
   test_complex_3x3_tridiagonal();
