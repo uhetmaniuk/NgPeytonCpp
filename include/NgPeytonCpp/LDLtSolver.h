@@ -8,10 +8,10 @@ namespace NgPeytonCpp {
 
 /// Ordering strategy for the symbolic factorization.
 enum class Ordering {
-  MMD = -1,            ///< Multiple Minimum Degree
-  UserProvided = 0,    ///< User-provided permutation (perm_ must be set)
-  MetisNodeND = 2,     ///< METIS Node Nested Dissection (requires -DMETIS)
-  MetisEdgeND = 3      ///< METIS Edge Nested Dissection (requires -DMETIS)
+  MMD = -1,          ///< Multiple Minimum Degree
+  UserProvided = 0,  ///< User-provided permutation (perm_ must be set)
+  MetisNodeND = 2,   ///< METIS Node Nested Dissection (requires -DMETIS)
+  MetisEdgeND = 3    ///< METIS Edge Nested Dissection (requires -DMETIS)
 };
 
 template <typename Scalar, typename Index>
@@ -19,7 +19,8 @@ class LDLtSolver {
 public:
   static_assert(!std::is_const<Index>::value, "Index must not be const");
   static_assert(!std::is_const<Scalar>::value, "Scalar must not be const");
-  static_assert(std::is_integral<Index>::value, "Index must be an integral type");
+  static_assert(
+    std::is_integral<Index>::value, "Index must be an integral type");
 
   /// \brief Remove default constructor
   LDLtSolver() = delete;
@@ -80,7 +81,5 @@ protected:
 };
 
 }  // namespace NgPeytonCpp
-
-#include "LDLtSolver_impl.h"
 
 #endif  // NGPEYTONCPP_LDLTSOLVER_H

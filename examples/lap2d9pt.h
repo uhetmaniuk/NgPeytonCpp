@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include "LDLtSolver.h"
+#include "NgPeytonCpp/LDLtSolver.h"
 
 template <typename Scalar>
 int lap2d9pt(int argc, char** argv) {

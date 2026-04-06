@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "LDLtSolver.h"
+#include "NgPeytonCpp/LDLtSolver.h"
 #include "nd2d.h"
 
 using doublecomplex = std::complex<double>;

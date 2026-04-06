@@ -9,7 +9,7 @@
 #include <vector>
 #include <unistd.h>
 
-#include "LDLtSolver.h"
+#include "NgPeytonCpp/LDLtSolver.h"
 
 // =====================================================================
 // Helpers
@@ -46,9 +46,8 @@ using NgPeytonCpp::Ordering;
 /// Construct, factorize, solve with a given ordering, check solution.
 /// All indices are 0-based.
 void solve_and_check(
-  const char* name, Ordering order, int n, const int* colptr,
-  const int* rowind, const double* nzvals, const double* rhs,
-  const double* x_exact, double tol) {
+  const char* name, Ordering order, int n, const int* colptr, const int* rowind,
+  const double* nzvals, const double* rhs, const double* x_exact, double tol) {
   current_test = name;
   alarm(5);
 
