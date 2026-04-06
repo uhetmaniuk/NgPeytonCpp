@@ -658,6 +658,8 @@ void etordr(
   invinv(neqns, invp, invpos, perm);
 } /* etordr */
 
-}}}  // namespace NgPeytonCpp::details::f2c
+}  // namespace f2c
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 #endif  // NGPEYTONCPP_DETAILS_ELIMINATIONTREE_H

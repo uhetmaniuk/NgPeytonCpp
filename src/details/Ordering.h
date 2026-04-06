@@ -1062,6 +1062,8 @@ void ordmmd(
   sfiflg = false;
 } /* ordmmd */
 
-}}}  // namespace NgPeytonCpp::details::f2c
+}  // namespace f2c
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 #endif  // NGPEYTONCPP_DETAILS_ORDERING_H

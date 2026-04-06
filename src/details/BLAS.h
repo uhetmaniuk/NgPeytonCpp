@@ -104,6 +104,8 @@ void smxpy1(
   }
 } /* smxpy1 */
 
-}}}  // namespace NgPeytonCpp::details::f2c
+}  // namespace f2c
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 #endif  // NGPEYTONCPP_DETAILS_BLAS_H

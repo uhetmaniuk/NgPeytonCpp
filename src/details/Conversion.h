@@ -238,6 +238,8 @@ void ilo2ho(
   }
 } /* ilo2ho */
 
-}}}  // namespace NgPeytonCpp::details::f2c
+}  // namespace f2c
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 #endif  // NGPEYTONCPP_DETAILS_CONVERSION_H

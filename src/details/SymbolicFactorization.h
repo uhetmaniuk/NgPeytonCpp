@@ -1004,6 +1004,7 @@ void sfinit(
   fsup2(neqns, nsuper, snode, xsuper);
 } /* sfinit */
 
-}}  // namespace NgPeytonCpp::details
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 #endif  // NGPEYTONCPP_DETAILS_SYMBOLICFACTORIZATION_H

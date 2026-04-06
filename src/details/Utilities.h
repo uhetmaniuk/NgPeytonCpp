@@ -154,6 +154,7 @@ void ldindx(Index jlen, Index* lindx, Index* indmap) {
   }
 }
 
-}}  // namespace NgPeytonCpp::details
+}  // namespace details
+}  // namespace NgPeytonCpp
 
 #endif  // NGPEYTONCPP_DETAILS_UTILITIES_H
