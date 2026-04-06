@@ -38,3 +38,5 @@ target_link_libraries(test_solve NgPeytonCpp)
 add_test(NAME solve COMMAND test_solve)
 
 add_test(NAME clap2d5pt COMMAND clap2d5pt)
+add_test(NAME dlap2d9pt COMMAND dlap2d9pt)
+add_test(NAME slap2d9pt COMMAND slap2d9pt)

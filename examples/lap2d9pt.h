@@ -115,9 +115,14 @@ int lap2d9pt(int argc, char** argv) {
     norm += double(std::abs(x[i]));
     error += double(std::abs(x[i] - y[i]));
   }
+  double relerr = error / norm;
   std::cout << " || x - y ||_1 " << error << "\n";
-  std::cout << " || x - y ||_1 / || x ||_1 " << error / norm << "\n";
+  std::cout << " || x - y ||_1 / || x ||_1 " << relerr << "\n";
 
+  if (relerr > 1e-4) {
+    std::cerr << " FAIL: relative error too large\n";
+    return 1;
+  }
   return 0;
 }
 

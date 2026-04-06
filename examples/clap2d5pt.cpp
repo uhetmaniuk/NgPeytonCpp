@@ -9,18 +9,16 @@
 using doublecomplex = std::complex<double>;
 
 int main(int argc, char** argv) {
-  int i, j, nnodes, nedges, ia, nnz;
+  int i, j, nnodes, nnz;
   int nx = -1, ny = -1, count, node;
   auto order = NgPeytonCpp::Ordering::UserProvided;
-  doublecomplex dval;
-  int pbc = 1;
   int printa = 0;
 
   std::vector<int> grid, perm;
   std::vector<int> rowind, colptr;
   std::vector<doublecomplex> nzvals;
 
-  ia = 1;
+  int ia = 1;
   while (ia < argc) {
     if (!strncmp(argv[ia], "-nx", 3)) {
       nx = atoi(&argv[ia][4]);
@@ -54,31 +52,16 @@ int main(int argc, char** argv) {
   grid.resize(nnodes);
 
   for (i = 0; i < nnodes; i++)
-    grid[i] = i;  // 0-based
+    grid[i] = i;
 
   // 0-based grid accessor: node at row i, column j
   auto gnode = [&](int i, int j) { return grid[nx * j + i]; };
 
-  /* first pass to count the number of edges */
-  if (pbc) {
-    /* Periodic BC */
-    nedges = 4 * nnodes;
-  } else {
-    /* Dirichlet BC */
-    nedges = 0;
-    for (j = 0; j < ny; j++) {
-      for (i = 0; i < nx; i++) {
-        if (j + 1 < ny)
-          nedges++;
-        if (j > 0)
-          nedges++;
-        if (i + 1 < nx)
-          nedges++;
-        if (i > 0)
-          nedges++;
-      }
-    }
-  }
+  // Periodic BC: each node has exactly 4 neighbors
+  int nedges = 4 * nnodes;
+  doublecomplex dval(10.0, 0.0);
+  std::cout << " Periodic boundary condition\n";
+
   nnz = nedges / 2 + nnodes;
 
   colptr.resize(nnodes + 1, 0);
@@ -89,71 +72,53 @@ int main(int argc, char** argv) {
   count = 0;
   node = 0;
 
-  if (pbc) {
-    dval = doublecomplex(10.0, 0.0);
-    std::cout << " Periodic boundary condition\n";
-  } else {
-    dval = doublecomplex(4.0, 0.0);
-    std::cout << " Dirichlet boundary condition\n";
-  }
-
   for (j = 0; j < ny; j++) {
     for (i = 0; i < nx; i++) {
-      /* diagonal */
+      // Diagonal
       if (printa) {
         std::cout << gnode(i, j) << " " << gnode(i, j) << "  " << real(dval)
                   << " " << imag(dval) << "\n";
       }
-
       rowind[count] = gnode(i, j);
       nzvals[count] = dval;
       count++;
 
-      /* lower neighbor (i+1, j) */
+      // Lower neighbor (i+1, j)
       if (i + 1 < nx) {
         if (printa)
           std::cout << gnode(i + 1, j) << " " << gnode(i, j) << " -1.0 0.0\n";
-
         rowind[count] = gnode(i + 1, j);
         nzvals[count] = doublecomplex(-1.0, 0.0);
         count++;
       }
 
-      if (pbc) {
-        /* bottom of the mesh: wrap i=0 to i=nx-1 */
-        if (i == 0) {
-          if (printa)
-            std::cout << gnode(nx - 1, j) << " " << gnode(i, j)
-                      << " -1.0 0.0\n";
-
-          rowind[count] = gnode(nx - 1, j);
-          nzvals[count] = doublecomplex(-1.0, 0.0);
-          count++;
-        }
+      // Periodic wrap: connect i=0 to i=nx-1
+      if (i == 0) {
+        if (printa)
+          std::cout << gnode(nx - 1, j) << " " << gnode(i, j) << " -1.0 0.0\n";
+        rowind[count] = gnode(nx - 1, j);
+        nzvals[count] = doublecomplex(-1.0, 0.0);
+        count++;
       }
 
-      /* right neighbor (i, j+1) */
+      // Right neighbor (i, j+1)
       if (j + 1 < ny) {
         if (printa)
           std::cout << gnode(i, j + 1) << " " << gnode(i, j) << " -1.0 0.0\n";
-
         rowind[count] = gnode(i, j + 1);
         nzvals[count] = doublecomplex(-1.0, 0.0);
         count++;
       }
 
-      if (pbc) {
-        /* right end of the mesh: wrap j=0 to j=ny-1 */
-        if (j == 0) {
-          if (printa)
-            std::cout << gnode(i, ny - 1) << " " << gnode(i, j)
-                      << " -1.0 0.0\n";
-
-          rowind[count] = gnode(i, ny - 1);
-          nzvals[count] = doublecomplex(-1.0, 0.0);
-          count++;
-        }
+      // Periodic wrap: connect j=0 to j=ny-1
+      if (j == 0) {
+        if (printa)
+          std::cout << gnode(i, ny - 1) << " " << gnode(i, j) << " -1.0 0.0\n";
+        rowind[count] = gnode(i, ny - 1);
+        nzvals[count] = doublecomplex(-1.0, 0.0);
+        count++;
       }
+
       node++;
       colptr[node] = count;
     }
@@ -172,12 +137,12 @@ int main(int argc, char** argv) {
     nnodes, colptr.data(), rowind.data(), order, perm.data());
   uh.ldlTFactorize(colptr.data(), rowind.data(), nzvals.data());
 
-  /* Solve: set x = {0, 1, 2, ...}, compute Ax, solve, check */
+  // Solve: set x = {0, 1, 2, ...}, compute Ax, solve, check
   std::vector<doublecomplex> x(nnodes), Ax(nnodes, 0.0), y(nnodes, 0.0);
   for (i = 0; i < nnodes; ++i)
     x[i] = doublecomplex(i, 0.0);
 
-  /* SpMV: Ax = A*x (lower-triangular CSC, symmetrize) */
+  // SpMV: Ax = A*x (lower-triangular CSC, symmetrize)
   for (i = 0; i < nnodes; ++i) {
     for (auto k = colptr[i]; k < colptr[i + 1]; ++k) {
       int r = rowind[k];
