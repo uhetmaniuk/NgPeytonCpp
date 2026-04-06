@@ -4,7 +4,7 @@
 // NOTE: This test exercises the internal isFullRepresentation() function
 // directly. It uses 1-based CSC indices (the internal convention), not the
 // 0-based indices of the public API.
-#include "LDLtSolver_impl.h"  // in src/, internal
+#include "details/Utilities.h"
 
 using NgPeytonCpp::details::isFullRepresentation;
 

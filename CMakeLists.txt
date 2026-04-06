@@ -29,8 +29,7 @@ enable_testing()
 
 add_executable(test_isFullRepresentation tests/test_isFullRepresentation.cpp)
 target_include_directories(test_isFullRepresentation
-  PRIVATE "${PROJECT_SOURCE_DIR}/src"
-          "${PROJECT_SOURCE_DIR}/include")
+  PRIVATE "${PROJECT_SOURCE_DIR}/src")
 add_test(NAME isFullRepresentation COMMAND test_isFullRepresentation)
 
 add_executable(test_solve tests/test_solve.cpp)
