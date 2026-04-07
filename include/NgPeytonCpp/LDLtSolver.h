@@ -2,6 +2,7 @@
 #define NGPEYTONCPP_LDLTSOLVER_H
 
 #include <complex>
+#include <memory>
 #include <type_traits>
 #include <vector>
 
@@ -61,11 +62,11 @@ protected:
   std::vector<Index> xlindx;
   std::vector<Index> lindx;
   std::vector<Index> xlnz;
-  std::vector<Scalar> lnz;
-  std::vector<Scalar> diag;
+  std::unique_ptr<Scalar[]> lnz;
+  std::unique_ptr<Scalar[]> diag;
   std::vector<Index> perm;
   std::vector<Index> invp;
-  std::vector<Scalar> newrhs;
+  std::unique_ptr<Scalar[]> newrhs;
 
   // --- Temporaries (freed after factorization) ---
   Index nsub = 0;
@@ -73,12 +74,9 @@ protected:
   Index tmpsiz = 0;
   bool fullrep = false;
   std::vector<Index> snodes = {};
-  std::vector<Index> colcnt = {};
   std::vector<Index> split = {};
-  std::vector<Scalar> tmat = {};
   std::vector<Index> xadj = {};
   std::vector<Index> adj = {};
-  std::vector<Scalar> anz = {};
   std::vector<Index> iwork = {};
 
   /// Build the full adjacency structure (no diagonal) from CSC input.

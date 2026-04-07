@@ -116,7 +116,7 @@ void LDLtSolver<Scalar, Index>::symbolicAnalysis(
   // Allocate supernode partition storage
   snodes.resize(n);
   xsuper.resize(n + 1);
-  colcnt.resize(n);
+  std::vector<Index> colcnt(n);
   perm.resize(n);
   invp.resize(n);
 
@@ -199,7 +199,8 @@ void LDLtSolver<Scalar, Index>::numericalFactorization(
   Index iwsiz = 7 * n + 3;
   Index iflag = 0;
 
-  anz.resize(2 * nnz - n);
+  Index anz_size = 2 * nnz - n;
+  auto* anz = new Scalar[anz_size];
 
   // Allocate factor storage (extra space for diagonal extraction)
   Index maxsup = 0;
@@ -210,38 +211,39 @@ void LDLtSolver<Scalar, Index>::numericalFactorization(
     nnzlplus = nnzlplus + supsize * (supsize - 1) / 2;
   }
 
-  lnz.resize(nnzlplus);
-  tmat.resize(tmpsiz);
-  diag.resize(n);
-  newrhs.resize(n);
+  lnz.reset(new Scalar[nnzlplus]);
+  diag.reset(new Scalar[n]);
+  newrhs.reset(new Scalar[n]);
 
   if (fullrep) {
     std::copy(cp, cp + n + 1, xadj.begin());
     std::copy(ri, ri + nnz, adj.begin());
-    std::copy(nzvals_, nzvals_ + nnz, anz.begin());
+    std::copy(nzvals_, nzvals_ + nnz, anz);
   } else {
     details::f2c::flo2ho(
-      n, cp, ri, nzvals_, &xadj[0], &adj[0], &anz[0], &iwork[0]);
+      n, cp, ri, nzvals_, &xadj[0], &adj[0], anz, &iwork[0]);
   }
 
   details::f2c::inpnv(
-    n, &xadj[0], &adj[0], &anz[0], &perm[0], &invp[0], nsuper, &xsuper[0],
+    n, &xadj[0], &adj[0], anz, &perm[0], &invp[0], nsuper, &xsuper[0],
     &xlindx[0], &lindx[0], &xlnz[0], &lnz[0], iwsiz, &iwork[0], iflag);
 
-  tmat.assign(tmpsiz, Scalar(0));
+  delete[] anz;
+
+  // tmat is workspace for blkfct, must be zero on entry
+  auto* tmat = new Scalar[tmpsiz]();
 
   details::f2c::blkfct(
     n, nsuper, &xsuper[0], &snodes[0], &split[0], &xlindx[0], &lindx[0],
-    &xlnz[0], &lnz[0], &diag[0], iwsiz, &iwork[0], tmpsiz, &tmat[0], iflag);
+    &xlnz[0], &lnz[0], &diag[0], iwsiz, &iwork[0], tmpsiz, tmat, iflag);
+
+  delete[] tmat;
 
   // Free temporary storage no longer needed after factorization
   std::vector<Index>().swap(iwork);
   std::vector<Index>().swap(xadj);
   std::vector<Index>().swap(adj);
-  std::vector<Scalar>().swap(anz);
-  std::vector<Scalar>().swap(tmat);
   std::vector<Index>().swap(split);
-  std::vector<Index>().swap(colcnt);
   std::vector<Index>().swap(snodes);
 }
 

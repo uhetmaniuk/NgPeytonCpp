@@ -234,14 +234,13 @@ void test_user_provided_no_perm_throws() {
 
   const double nzvals[] = {4.0, -1.0, 4.0, -1.0, 4.0};
 
-  bool threw = false;
   try {
     NgPeytonCpp::LDLtSolver<double, int> mat(
       n, colptr, rowind, nzvals, Ordering::UserProvided);
+    assert(false && "UserProvided without perm must throw");
   } catch (const std::runtime_error&) {
-    threw = true;
+    // expected
   }
-  assert(threw && "UserProvided without perm must throw");
   std::cout << "  PASS  UserProvided without perm throws\n";
 }
 
@@ -263,8 +262,8 @@ void test_complex_3x3_tridiagonal() {
   const Cpx nzvals[] = {
     Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0), Cpx(-1, 0), Cpx(4, 0)};
 
-  const Cpx x_exact[] = {Cpx(1, 1), Cpx(2, 1), Cpx(3, 1)};
   const Cpx rhs[] = {Cpx(2, 3), Cpx(4, 2), Cpx(10, 3)};
+  const Cpx xref[] = {Cpx(1, 1), Cpx(2, 1), Cpx(3, 1)};
 
   // Identity ordering
   {
@@ -273,10 +272,8 @@ void test_complex_3x3_tridiagonal() {
       n, colptr, rowind, nzvals, Ordering::UserProvided, &perm[0]);
     Cpx x[3] = {};
     mat.solve(rhs, x);
-    const double tol = 1e-12;
-    for (int i = 0; i < n; ++i) {
-      assert(std::abs(x[i] - x_exact[i]) < tol);
-    }
+    for (int i = 0; i < n; ++i)
+      assert(std::abs(x[i] - xref[i]) < 1e-12);
     std::cout << "  PASS  complex 3x3 tridiagonal (identity)\n";
   }
 
@@ -286,10 +283,8 @@ void test_complex_3x3_tridiagonal() {
       n, colptr, rowind, nzvals, Ordering::MMD);
     Cpx x[3] = {};
     mat.solve(rhs, x);
-    const double tol = 1e-12;
-    for (int i = 0; i < n; ++i) {
-      assert(std::abs(x[i] - x_exact[i]) < tol);
-    }
+    for (int i = 0; i < n; ++i)
+      assert(std::abs(x[i] - xref[i]) < 1e-12);
     std::cout << "  PASS  complex 3x3 tridiagonal (MMD)\n";
   }
 }
@@ -304,17 +299,15 @@ void test_complex_4x4_diagonal() {
   const Cpx nzvals[] = {Cpx(2, 1), Cpx(3, 2), Cpx(5, 1), Cpx(7, 3)};
 
   const Cpx rhs[] = {Cpx(2, 1), Cpx(3, 2), Cpx(5, 1), Cpx(7, 3)};
-  const Cpx x_exact[] = {Cpx(1, 0), Cpx(1, 0), Cpx(1, 0), Cpx(1, 0)};
+  const Cpx xref[] = {Cpx(1, 0), Cpx(1, 0), Cpx(1, 0), Cpx(1, 0)};
 
   // MMD ordering
   NgPeytonCpp::LDLtSolver<Cpx, int> mat(
     n, colptr, rowind, nzvals, Ordering::MMD);
   Cpx x[4] = {};
   mat.solve(rhs, x);
-  const double tol = 1e-12;
-  for (int i = 0; i < n; ++i) {
-    assert(std::abs(x[i] - x_exact[i]) < tol);
-  }
+  for (int i = 0; i < n; ++i)
+    assert(std::abs(x[i] - xref[i]) < 1e-12);
   std::cout << "  PASS  complex 4x4 diagonal (MMD)\n";
 }
 

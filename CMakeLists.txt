@@ -40,3 +40,11 @@ add_test(NAME solve COMMAND test_solve)
 add_test(NAME clap2d5pt COMMAND clap2d5pt)
 add_test(NAME dlap2d9pt COMMAND dlap2d9pt)
 add_test(NAME slap2d9pt COMMAND slap2d9pt)
+
+# --- Install ---
+include(GNUInstallDirs)
+install(TARGETS NgPeytonCpp
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/NgPeytonCpp
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
